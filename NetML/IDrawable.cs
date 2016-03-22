@@ -5,6 +5,7 @@ namespace NetML
     public interface IDrawable
     {
         void Draw(Graphics g);
-        Rectangle Bounds();
+        Rectangle DrawableBounds();
+        Rectangle CollisionBounds();
     }
 }

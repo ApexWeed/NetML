@@ -1,0 +1,32 @@
+    clientApps = new ApplicationContainer();
+    serverApps = new ApplicationContainer();
+    maddr = net.N<%%startNode%%>->GetObject<Ipv4MyAddress>();
+    if (maddr)
+    {
+        destnadd = maddr->getAddr();
+    }
+    else
+    {
+        NS_LOG_ERROR("net.N<%%startNode%%> unexpectedly has no IP address.");
+    }
+    /* Server
+    ftpClient = new BulkSendHelper("ns3::TcpSocketFactory", InetSocketAddress(destnadd, ftpport));
+    packetSinkHelper = new PacketSinkHelper("ns3::TcpSocketFactory", InetSocketAddress(destnadd, ftpport));
+    serverApps->Add(packetSinkHelper->Install(net.N<%%startNode%%>->GetObject<Node>()));
+    */
+<%%server%%>
+    NS_LOG_ERROR("Server on <%%startNode%%> installed.");
+    /* Client
+    ftpClient->SetAttribute("MaxBytes", UintegerValue(10000000));
+    clientApps->Add(ftpClient->Install(net.N<%%endNode%%>->GetObject<Node>()));
+    */
+<%%client%%>
+    NS_LOG_ERROR("Client on <%%endNode%%> installed.");
+    serverApps->Start(Seconds(<%%startTime%%>));
+    serverApps->Stop(Seconds(<%%endTime%%>));
+    clientApps->Start(Seconds(<%%startTime%%>));
+    clientApps->Stop(Seconds(<%%endTime%%>));
+    net.S<%%streamName%%> = serverApps->Get(0);
+    net.C<%%streamName%%> = clientApps->Get(0);
+
+    Simulator::Schedule(Seconds(<%%delayedStartTime%%>), &SetPars_<%%streamName%%>);

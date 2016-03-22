@@ -1,0 +1,86 @@
+/* Variables
+// process trace buffer/link_5/1
+static int Tlink_5_buffer;
+static std::ofstream Tlink_5_buffer_FStream;
+
+static int SeqFirstlink_5_buffer;
+static int AckFirstlink_5_buffer;
+
+// process trace throughput/link_5/2
+static int Tlink_5_throughput;
+static std::ofstream Tlink_5_throughput_FStream;
+
+static int SeqFirstlink_5_throughput;
+static int AckFirstlink_5_throughput;
+*/
+<%%variables%%>
+
+/* Functions
+// the traced node has the following members: link_5, 
+// process trace buffer//1
+void Tlink_5_Enqueue_bufferTracer(Ptr<const Packet> pkt)
+{
+    Tlink_5_buffer_FStream << Simulator::Now().GetSeconds()
+        << ":" << (Tlink_5_buffer += pkt->GetSize()) << std::endl;
+}
+
+// the traced node has the following members: link_5, 
+// process trace buffer//1
+void Tlink_5_Dequeue_bufferTracer(Ptr<const Packet> pkt)
+{
+    Tlink_5_buffer_FStream << Simulator::Now().GetSeconds()
+        << ":" << (Tlink_5_buffer -= pkt->GetSize()) << std::endl;
+}
+
+// the traced node has the following members: link_5, 
+// process trace throughput//1
+void Tlink_5_Enqueue_throughputTracer(Ptr<const Packet> pkt)
+{
+    Tlink_5_throughput_FStream << Simulator::Now().GetSeconds()
+        << ":" << (Tlink_5_throughput += pkt->GetSize()) << std::endl;
+}
+*/
+<%%functions%%>
+
+void setupCommonTraces()
+{
+    PointerValue optr;
+    ObjectPtrContainerValue ocntrptr;
+    DoubleValue dval;
+    IntegerValue ival;
+    UintegerValue uval;
+    BooleanValue bval;
+
+    /* Register traces
+    // set up tracing for Tlink_5_buffer of type Ptr<const_Packet>
+    if (TraceConnectNoContext(net.Llink_5, "Enqueue", MakeCallback(&Tlink_5_Enqueue_bufferTracer)))
+    {
+        NS_LOG_INFO("tracing for Enqueue at node link_5 successfully set up");
+    }
+    else
+    {
+        NS_LOG_ERROR("tracing for Enqueue at node link_5 was not successfully set up");
+    }
+
+    // set up tracing for Tlink_5_buffer of type Ptr<const_Packet>
+    if (TraceConnectNoContext(net.Llink_5, "Dequeue", MakeCallback(&Tlink_5_Dequeue_bufferTracer)))
+    {
+        NS_LOG_INFO("tracing for Dequeue at node link_5 successfully set up");
+    }
+    else
+    {
+        NS_LOG_ERROR("tracing for Dequeue at node link_5 was not successfully set up");
+    }
+
+    // set up tracing for Tlink_5_throughput of type Ptr<const_Packet>
+    if (TraceConnectNoContext(net.Llink_5, "Enqueue", MakeCallback(&Tlink_5_Enqueue_throughputTracer)))
+    {
+        NS_LOG_INFO("tracing for Enqueue at node link_5 successfully set up");
+    }
+    else
+    {
+        NS_LOG_ERROR("tracing for Enqueue at node link_5 was not successfully set up");
+    }
+    */
+<%%regTrace%%>
+}

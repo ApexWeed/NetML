@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Text;
 using System.Windows.Forms;
 
 namespace NetML
@@ -15,6 +14,7 @@ namespace NetML
         public Canvas()
         {
             Items = new List<IDrawable>();
+            DoubleBuffered = true;
         }
 
         public void AddItem(IDrawable Item)
@@ -29,9 +29,21 @@ namespace NetML
             UpdateItem(Item);
         }
 
+        public void AddItems(IEnumerable<IDrawable> Items)
+        {
+            this.Items.AddRange(Items);
+
+            if (Sorter != null)
+            {
+                Sorter.Sort(this.Items);
+            }
+
+            Invalidate();
+        }
+
         public void UpdateItem(IDrawable Item)
         {
-            using (var region = new Region(Item.Bounds()))
+            using (var region = new Region(Item.DrawableBounds()))
             {
                 Invalidate(region);
             }
@@ -44,7 +56,22 @@ namespace NetML
         {
             foreach (var item in Items)
             {
-                if (item.Bounds().Contains(X, Y))
+                if (item.CollisionBounds().Contains(X, Y))
+                {
+                    return item;
+                }
+            }
+
+            return null;
+        }
+
+        public IDrawable GetItem(Point P, Func<IDrawable, bool> Selector) => GetItem(P.X, P.Y, Selector);
+
+        public IDrawable GetItem(int X, int Y, Func<IDrawable, bool> Selector)
+        {
+            foreach (var item in Items.Where(Selector))
+            {
+                if (item.CollisionBounds().Contains(X, Y))
                 {
                     return item;
                 }
@@ -59,7 +86,7 @@ namespace NetML
 
             foreach (var item in Items)
             {
-                if (e.ClipRectangle.IntersectsWith(item.Bounds()))
+                if (e.ClipRectangle.IntersectsWith(item.DrawableBounds()))
                 {
                     item.Draw(e.Graphics);
                 }

@@ -36,6 +36,13 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\Apex\Apex\bin\Debug\Apex.dll</HintPath>
     </Reference>
+    <Reference Include="MiscUtil">
+      <HintPath>..\..\..\Libraries\MiscUtil.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.8.0.3\lib\net40\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -48,21 +55,95 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BuildSlave.cs" />
     <Compile Include="Canvas.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="ComponentLog.cs" />
+    <Compile Include="Console.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Console.Designer.cs">
+      <DependentUpon>Console.cs</DependentUpon>
+    </Compile>
+    <Compile Include="DisplayProperties.cs" />
+    <Compile Include="DisplayPropertiesEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DisplayPropertiesEditor.Designer.cs">
+      <DependentUpon>DisplayPropertiesEditor.cs</DependentUpon>
+    </Compile>
     <Compile Include="IDrawable.cs" />
+    <Compile Include="IDrawableConverter.cs" />
+    <Compile Include="IDrawableSorter.cs" />
+    <Compile Include="Link.cs" />
+    <Compile Include="NetworkPropertiesEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="NetworkPropertiesEditor.Designer.cs">
+      <DependentUpon>NetworkPropertiesEditor.cs</DependentUpon>
+    </Compile>
+    <Compile Include="NodeConverter.cs" />
+    <Compile Include="NodeStore.cs" />
+    <Compile Include="StreamEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="StreamEditor.Designer.cs">
+      <DependentUpon>StreamEditor.cs</DependentUpon>
+    </Compile>
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="NetMLSorter.cs" />
     <Compile Include="Node.cs" />
+    <Compile Include="NodeEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="NodeEditor.Designer.cs">
+      <DependentUpon>NodeEditor.cs</DependentUpon>
+    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SimulationParameters.cs" />
+    <Compile Include="SourceGenerator.cs" />
+    <Compile Include="Stream.cs" />
+    <Compile Include="LinkEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="LinkEditor.Designer.cs">
+      <DependentUpon>LinkEditor.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Trace.cs" />
+    <Compile Include="TraceAttribute.cs" />
+    <Compile Include="TraceEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="TraceEditor.Designer.cs">
+      <DependentUpon>TraceEditor.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Traces.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Traces.Designer.cs">
+      <DependentUpon>Traces.cs</DependentUpon>
+    </Compile>
+    <EmbeddedResource Include="Console.resx">
+      <DependentUpon>Console.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DisplayPropertiesEditor.resx">
+      <DependentUpon>DisplayPropertiesEditor.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="NetworkPropertiesEditor.resx">
+      <DependentUpon>NetworkPropertiesEditor.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="NodeEditor.resx">
+      <DependentUpon>NodeEditor.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
@@ -73,6 +154,20 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <EmbeddedResource Include="LinkEditor.resx">
+      <DependentUpon>LinkEditor.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="StreamEditor.resx">
+      <DependentUpon>StreamEditor.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="TraceEditor.resx">
+      <DependentUpon>TraceEditor.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Traces.resx">
+      <DependentUpon>Traces.cs</DependentUpon>
+    </EmbeddedResource>
+    <None Include="app.config" />
+    <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -82,6 +177,32 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Source Fragments\header.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Source Fragments\link.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Source Fragments\main.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Source Fragments\net.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Source Fragments\stream.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Source Fragments\streamParameters.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Source Fragments\streams.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Source Fragments\traces.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

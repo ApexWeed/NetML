@@ -1,0 +1,113 @@
+    // create the applications
+    NS_LOG_INFO("Creating applications from traffic streams");
+    /* Server helpers
+    UdpEchoServerHelper echoServer(9);
+    PacketSinkHelper* packetSinkHelper;
+    BulkSendHelper* ftpClient;
+    uint16_t ftpport = 21;  // well-known ftp port number
+    */
+<%%serverHelpers%%>
+    NS_LOG_INFO("Server helpers created.");
+    
+    ApplicationContainer *serverApps;
+    serverApps = 0;
+
+    UdpEchoClientHelper* echoClient;
+
+    ApplicationContainer* clientApps;
+    clientApps = 0;
+
+    Ipv4Address destnadd;
+    Ptr<Ipv4MyAddress> maddr;
+    Ptr<Object> streamob;
+    streamob = 0;
+
+    /* Streams
+    clientApps = new ApplicationContainer();
+    serverApps = new ApplicationContainer();
+    maddr = net.Nnode_2->GetObject<Ipv4MyAddress>();
+    if (maddr)
+    {
+        destnadd = maddr->getAddr();
+    }
+    else
+    {
+        NS_LOG_ERROR("net.Nnode_2 unexpectedly has no IP address.");
+    }
+    ftpClient = new BulkSendHelper("ns3::TcpSocketFactory", InetSocketAddress(destnadd, ftpport));
+    packetSinkHelper = new PacketSinkHelper("ns3::TcpSocketFactory", InetSocketAddress(destnadd, ftpport));
+    serverApps->Add(packetSinkHelper->Install(net.Nnode_2->GetObject<Node>()));
+    NS_LOG_ERROR("Server on node_2 installed.");
+    ftpClient->SetAttribute("MaxBytes", UintegerValue(10000000));
+    clientApps->Add(ftpClient->Install(net.Nnode_0->GetObject<Node>()));
+    NS_LOG_ERROR("Client on node_0 installed.");
+    serverApps->Start(Seconds(1));
+    serverApps->Stop(Seconds(9));
+    clientApps->Start(Seconds(1));
+    clientApps->Stop(Seconds(9));
+    net.Sstream_1 = serverApps->Get(0);
+    net.Cstream_1 = clientApps->Get(0);
+
+    Simulator::Schedule(Seconds(1.001), &SetPars_stream_1);
+
+
+    clientApps = new ApplicationContainer();
+    serverApps = new ApplicationContainer();
+    maddr = net.Nnode_3->GetObject<Ipv4MyAddress>();
+    if (maddr)
+    {
+        destnadd = maddr->getAddr();
+    }
+    else
+    {
+        NS_LOG_ERROR("net.Nnode_3 unexpectedly has no IP address.");
+    }
+    ftpClient = new BulkSendHelper("ns3::TcpSocketFactory", InetSocketAddress(destnadd, ftpport));
+    packetSinkHelper = new PacketSinkHelper("ns3::TcpSocketFactory", InetSocketAddress(destnadd, ftpport));
+    serverApps->Add(packetSinkHelper->Install(net.Nnode_3->GetObject<Node>()));
+    NS_LOG_ERROR("Server on node_3 installed.");
+    ftpClient->SetAttribute("MaxBytes", UintegerValue(10000000));
+    clientApps->Add(ftpClient->Install(net.Nnode_1->GetObject<Node>()));
+    NS_LOG_ERROR("Client on node_1 installed.");
+    serverApps->Start(Seconds(1));
+    serverApps->Stop(Seconds(9));
+    clientApps->Start(Seconds(1));
+    clientApps->Stop(Seconds(9));
+    net.Sstream_3 = serverApps->Get(0);
+    net.Cstream_3 = clientApps->Get(0);
+
+    Simulator::Schedule(Seconds(1.001), &SetPars_stream_3);
+    NS_LOG_ERROR("Traffic stream stream_5 has no specified PacketSize. we use 1000.");
+
+    clientApps = new ApplicationContainer();
+    serverApps = new ApplicationContainer();
+    maddr = net.Nnode_2->GetObject<Ipv4MyAddress>();
+    if (maddr)
+    {
+        destnadd = maddr->getAddr();
+    }
+    else
+    {
+        // destnaddptr = (Ptr<Ipv4Address>)getInnerObject(net.Nnode_2,"Address");
+        // if (!destnaddptr) {
+        NS_LOG_ERROR("net.Nnode_2 unexpectedly has no IP address.");
+        // } else {
+        //         destnadd = *destnaddptr;
+        // }
+    }
+    echoClient = new UdpEchoClientHelper(destnadd, 9);
+    serverApps->Add(echoServer.Install(net.Nnode_2));
+    echoClient->SetAttribute("MaxPackets", UintegerValue(10000));
+    echoClient->SetAttribute("Interval", TimeValue(Seconds(0.1)));
+    echoClient->SetAttribute("PacketSize", UintegerValue(1000));
+    clientApps->Add(echoClient->Install(net.Nnode_0));
+    serverApps->Start(Seconds(1));
+    serverApps->Stop(Seconds(9));
+    clientApps->Start(Seconds(1));
+    clientApps->Stop(Seconds(9));
+    net.Sstream_5 = serverApps->Get(0);
+    net.Cstream_5 = clientApps->Get(0);
+
+    Simulator::Schedule(Seconds(1.001), &SetPars_stream_5);
+    */
+<%%streams%%>

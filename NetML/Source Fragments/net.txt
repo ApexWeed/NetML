@@ -1,0 +1,17 @@
+class Net
+{
+public:
+<%%nodes%%>
+<%%links%%>
+<%%streams%%>
+    Net(void) {}
+};
+
+Net net;
+std::ofstream attsfile;
+void showatts()
+{
+<%%nodeAtts%%>
+<%%linkAtts%%>
+<%%streamAtts%%>
+}

@@ -1,0 +1,726 @@
+/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+/*
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation;
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
+#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/csma-module.h"
+#include "ns3/wifi-module.h"
+#include "ns3/lte-module.h"
+#include "ns3/wimax-module.h"
+#include "ns3/wimax-helper.h"
+#include "ns3/scheduler.h"
+#include "ns3/mobility-module.h"
+#include "ns3/applications-module.h"
+#include "ns3/ipv4-global-routing-helper.h"
+#include "ns3/bulk-send-application.h"
+#include "ns3/packet-sink.h"
+#include "ns3/ipv4-l3-protocol.h"
+#include "ns3/Ipv4MyAddress.h"
+#include "ns3/config-store-module.h"
+#include "ns3/enum.h"
+#include "ns3/drop-tail-queue.h"
+#include "ns3/red-queue.h"
+#include "ns3/buildings-helper.h"
+#include "ns3/config-store.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <string>
+#include <set>
+#include <iostream>
+#include <fstream>
+
+using namespace ns3;
+
+using namespace std;
+
+NS_LOG_COMPONENT_DEFINE("NetmltoNs3");
+
+enum Mode
+{
+    PACKETS,     /**< Use number of packets for maximum queue size */
+    BYTES       /**< Use number of bytes for maximum queue size */
+};
+
+std::set<Ptr<const Object> > *visited;
+
+void printMyAtts(std::string oname, std::string prefix, std::ofstream& attsfile, Ptr<const Object> nd, int level)
+{
+    if (nd == 0) return;
+    int mylevel = level;
+    std::string obname;
+    try
+    {
+        obname = nd->GetInstanceTypeId().GetName();
+    }
+    catch (...)
+    {
+        attsfile << prefix << "[" << mylevel << "] " << "Attributes of " << oname << " could not be accessed." << endl;
+        return;
+    }
+    mylevel++;
+    visited->insert(nd);  // avoid confusing repeat visits
+    attsfile << prefix << "[" << mylevel << "] " << oname << "("
+        << obname << ")" << std::endl;
+    // print the attributes
+    int nats = nd->GetInstanceTypeId().GetAttributeN();
+    if (nats > 0)
+    {
+        attsfile << prefix << "[" << mylevel << "] " << " Attributes" << std::endl;
+        for (int at = 0; at < nats; at++)
+        {
+            PointerValue optr;
+            ObjectPtrContainerValue ocntrptr;
+            std::string atname = nd->GetInstanceTypeId().GetAttributeFullName(at);
+            std::string lastpart = atname.substr(atname.find_last_of(":") + 1);
+            if (lastpart == "SocketList")
+            {
+                attsfile << prefix << "[" << mylevel << "] " << "  Sockets (" << lastpart << ")" << std::endl;
+                if (nd->GetAttributeFailSafe(lastpart, ocntrptr))
+                {
+                    attsfile << prefix << "[" << mylevel << "] " << "     Number of sockets = " << ocntrptr.GetN() << std::endl;
+                    for (uint32_t k = 0; k < ocntrptr.GetN(); k++)
+                    {
+                        printMyAtts(nd->GetInstanceTypeId().GetAttributeFullName(at),
+                            prefix + "   ", attsfile, ocntrptr.Get(k), mylevel);
+                    }
+                }
+            }
+            else if (nd->GetAttributeFailSafe(lastpart, optr))
+            {
+                // cerr << "I now have the attribute maybe, in optr. But I have to convert its type." << std::endl;
+                Ptr<const Object> attob = optr.GetObject();
+                // cerr << "I have converted it! Now we recurse." << std::endl;
+                if (attob)
+                {
+                    attsfile << prefix << "[" << mylevel << "] " << "  Attribute-as-object" << std::endl;
+                    printMyAtts(nd->GetInstanceTypeId().GetAttributeFullName(at),
+                        prefix + "   ", attsfile, attob, mylevel);
+                }
+            }
+            else if (lastpart == "Id")
+            {
+                UintegerValue iv;
+                nd->GetAttributeFailSafe(lastpart, iv);
+                attsfile << prefix << "[" << mylevel << "] " << "   " << nd->GetInstanceTypeId().GetAttributeFullName(at) << " " << iv.Get() << std::endl;
+            }
+            else
+            {
+                UintegerValue iv; // let's try for a uint value just in case we are lucky
+                if (nd->GetAttributeFailSafe(lastpart, iv))
+                {
+                    attsfile << prefix << "[" << mylevel << "] " << "   "
+                        << nd->GetInstanceTypeId().GetAttributeFullName(at) << ": " << iv.Get() << std::endl;
+                }
+                else
+                {
+                    attsfile << prefix << "[" << mylevel << "] " << "   "
+                        << nd->GetInstanceTypeId().GetAttributeFullName(at) << std::endl;
+                }
+            }
+        }
+    }
+    // print the trace-sources
+    int nsrcs = nd->GetInstanceTypeId().GetTraceSourceN(), othersrcs = 0;
+    if (nd->GetInstanceTypeId().GetName() == "ns3::DropTailQueue")
+    {
+        othersrcs = Queue::GetTypeId().GetTraceSourceN();
+    }
+    if (nd->GetInstanceTypeId().GetName() == "ns3::UdpEchoServer" || nd->GetInstanceTypeId().GetName() == "ns3::UdpEchoClient")
+    {
+        othersrcs += Application::GetTypeId().GetTraceSourceN();
+    }
+    if (nsrcs > 0 || othersrcs > 0)
+    {
+        attsfile << prefix << "[" << mylevel << "] " << " Trace sources" << std::endl;
+    }
+    if (nsrcs > 0)
+    {
+        for (int src = 0; src < nsrcs; src++)
+        {
+            attsfile << prefix << "[" << mylevel << "] " << "  " << nd->GetInstanceTypeId().GetTraceSource(src).name << "  "
+                << nd->GetInstanceTypeId().GetTraceSource(src).help << std::endl;
+        }
+    }
+    if (othersrcs > 0)
+    {
+        uint32_t osrc = 0;
+        for (osrc = 0; osrc < Queue::GetTypeId().GetTraceSourceN(); osrc++)
+        {
+            attsfile << prefix << "[" << mylevel << "] " << "  " << Queue::GetTypeId().GetTraceSource(osrc).name << "  "
+                << Queue::GetTypeId().GetTraceSource(osrc).help << std::endl;
+        }
+        for (osrc = 0; osrc < Application::GetTypeId().GetTraceSourceN(); osrc++)
+        {
+            attsfile << prefix << "[" << mylevel << "] " << "  " << Application::GetTypeId().GetTraceSource(osrc).name << "  "
+                << Application::GetTypeId().GetTraceSource(osrc).help << std::endl;
+        }
+    }
+
+    // recurse through the aggregated objects
+    Object::AggregateIterator nit = nd->GetAggregateIterator();
+    bool firstsubob = true;
+    while (nit.HasNext())
+    {
+        Ptr<const Object> ob = nit.Next();
+        if (visited->count(ob)>0) continue;
+        if (firstsubob)
+        {
+            attsfile << prefix << "[" << mylevel << "] " << " Sub-objects" << std::endl;
+            firstsubob = false;
+        }
+        visited->insert(ob);
+        printMyAtts(ob->GetInstanceTypeId().GetName(), prefix + "  ", attsfile, ob, mylevel);
+    }
+
+    if (nd->GetInstanceTypeId().GetName() == "ns3::Node")
+    {
+        // loop through the devices attached to this node
+        Ptr<Node> me = nd->GetObject<Node>();
+        bool first = true;
+        uint32_t k = 0;
+        for (k = 0; k < me->GetNDevices(); k++)
+        {
+            if (first)
+            {
+                attsfile << prefix << "[" << mylevel << "] " << " Devices" << std::endl;
+                first = false;
+            }
+            Ptr<NetDevice> device = me->GetDevice(k);
+            printMyAtts(device->GetInstanceTypeId().GetName(), prefix + "  ", attsfile, device, mylevel);
+        }
+    }
+}
+
+void printMyAttributes(std::string oname, std::string prefix, std::ofstream& attsfile, Ptr<const Object> nd)
+{
+    visited = new std::set<Ptr<const Object> >();
+    printMyAtts(oname, prefix, attsfile, nd, 0);
+    attsfile << std::endl;
+}
+
+std::set<Ptr<const Object> > *tvisited;
+
+bool TraceConnectNC(Ptr<Object> nd, std::string tracesourcename, const CallbackBase &cb)
+{
+    bool found = false;
+    int nats = nd->GetInstanceTypeId().GetAttributeN();
+    // NS_LOG_UNCOND("In TraceConnectNC checking the attributes of nd first.");
+    if (nats > 0)
+    {
+        for (int at = 0; at < nats; at++)
+        {
+            PointerValue optr;
+            ObjectPtrContainerValue ocntrptr;
+            std::string atname = nd->GetInstanceTypeId().GetAttributeFullName(at);
+            std::string lastpart = atname.substr(atname.find_last_of(":") + 1);
+            if (lastpart == tracesourcename)
+            {
+                return nd->TraceConnectWithoutContext(tracesourcename, cb);
+            }
+            if (lastpart == "SocketList")
+            {
+                if (nd->GetAttributeFailSafe(lastpart, ocntrptr))
+                {
+                    for (uint32_t k = 0; k < ocntrptr.GetN(); k++)
+                    {
+                        found = TraceConnectNC(ocntrptr.Get(k), tracesourcename, cb);
+                        if (found) return found;
+                    }
+                }
+            }
+            else if (nd->GetAttributeFailSafe(lastpart, optr))
+            {
+                Ptr<Object> attob = optr.GetObject();
+                if (attob)
+                {
+                    found = TraceConnectNC(attob, tracesourcename, cb);
+                    if (found) return found;
+                }
+            }
+        }
+    }
+    int nsrcs = nd->GetInstanceTypeId().GetTraceSourceN();
+    // NS_LOG_UNCOND("In TraceConnectNC checking the sources of nd, of which there are " << nsrcs << ".");
+    if (nsrcs > 0)
+    {
+        for (int src = 0; src < nsrcs; src++)
+        {
+            if (nd->GetInstanceTypeId().GetTraceSource(src).name == tracesourcename)
+            {
+                return nd->TraceConnectWithoutContext(tracesourcename, cb);
+            }
+        }
+    }
+    // NS_LOG_UNCOND("In TraceConnectNC trying the parent's sources.");
+    if (nd->GetInstanceTypeId().HasParent())
+    {
+        nsrcs = 0;
+        try
+        {
+            nsrcs = nd->GetInstanceTypeId().GetParent().GetTraceSourceN();
+        }
+        catch (...) {}
+        if (nsrcs > 0)
+        {
+            // NS_LOG_UNCOND("In TraceConnectNC trying the parent's sources, of which there are " << nsrcs << ".");
+            for (int src = 0; src < nsrcs; src++)
+            {
+                if (nd->GetInstanceTypeId().GetParent().GetTraceSource(src).name == tracesourcename)
+                {
+                    return nd->TraceConnectWithoutContext(tracesourcename, cb);
+                }
+            }
+        }
+    }
+    int othersrcs = 0;
+    // NS_LOG_UNCOND("In TraceConnectNC, lets consider the ns3:DropTailQueue case.");
+    if (nd->GetInstanceTypeId().GetName() == "ns3::DropTailQueue")
+    {
+        othersrcs = Queue::GetTypeId().GetTraceSourceN();
+    }
+    if (othersrcs > 0)
+    {
+        // NS_LOG_UNCOND("In TraceConnectNC, there are " << othersrcs << " ns3:DropTailQueue tracesources to consider.");
+        for (int osrc = 0; osrc < othersrcs; osrc++)
+        {
+            std::string srcname = Queue::GetTypeId().GetTraceSource(osrc).name;
+            if (srcname == tracesourcename)
+            {
+                // NS_LOG_UNCOND("In TraceConnectNC, using tracesourcename " << tracesourcename << ".");
+                return nd->TraceConnectWithoutContext(tracesourcename, cb);
+            }
+            else
+            {
+                // NS_LOG_UNCOND("In TraceConnectNC, srcname " << srcname << " was rejected since it is not " << tracesourcename << ".");
+            }
+        }
+    }
+    // recurse through the aggregated objects
+
+    // NS_LOG_UNCOND("In TraceConnectNC now consider the aggregated objects.");
+    Object::AggregateIterator nit = nd->GetAggregateIterator();
+    while (nit.HasNext())
+    {
+        const Object* theob = PeekPointer(nit.Next());
+        Object* thesameob = const_cast<Object*>(theob);
+        Ptr<Object> ob(thesameob);
+        if (tvisited->count(ob) > 0) continue;
+        tvisited->insert(ob);
+        found = TraceConnectNC(ob, tracesourcename, cb);
+        if (found) return found;
+    }
+
+
+    if (nd->GetInstanceTypeId().GetName() == "ns3::Node")
+    {
+        // loop through the devices attached to this node
+        Ptr<Node> me = nd->GetObject<Node>();
+        if (me)
+        {
+            uint32_t k = 0, dkount = me->GetNDevices();
+            // NS_LOG_UNCOND("In TraceConnectNC now consider the " << dkount << " devices attached to this object.");
+            for (k = 0; k < dkount; k++)
+            {
+                Ptr<NetDevice> device = me->GetDevice(k);
+                found = TraceConnectNC(device, tracesourcename, cb);
+                if (found) return found;
+            }
+        }
+    }
+    return false;
+}
+
+bool TraceConnectToDevice(Ptr<Object> nd, std::string tracesourcename, uint32_t deviceid, const CallbackBase &cb)
+{
+    // NS_LOG_UNCOND("Connecting a trace to " << tracesourcename << ".");
+    bool found = false;
+    tvisited = new std::set<Ptr<const Object> >();
+    if (nd->GetInstanceTypeId().GetName() == "ns3::Node")
+    {
+        // NS_LOG_UNCOND("Connecting a trace and the object is a node.");
+        Ptr<Node> me = nd->GetObject<Node>();
+        if (me)
+        {
+            // NS_LOG_UNCOND("Connecting a trace and the Node has been found.");
+            try
+            {
+                Ptr<NetDevice> device = me->GetDevice(deviceid);
+                if (device)
+                {
+                    // NS_LOG_UNCOND("Connecting a trace and the device has been found.");
+                    found = TraceConnectNC(device, tracesourcename, cb);
+                    // NS_LOG_UNCOND("Connecting a trace and the trace has been connected.");
+                    if (found) return found;
+                }
+            }
+            catch (...) {}
+        }
+    }
+    return false;
+}
+
+bool TraceConnectToSocket(Ptr<Object> nd, std::string tracesourcename, uint32_t sockid, const CallbackBase &cb)
+{
+    bool found = false;
+    tvisited = new std::set<Ptr<const Object> >();
+    if (nd->GetInstanceTypeId().GetName() == "ns3::Node")
+    {
+        Ptr<Node> me = nd->GetObject<Node>();
+        Ptr<Application> sock = me->GetApplication(sockid);
+        found = TraceConnectNC(sock, tracesourcename, cb);
+        if (found) return found;
+    }
+    return false;
+}
+
+bool TraceConnectNoContext(Ptr<Object> nd, std::string tracesourcename, const CallbackBase &cb)
+{
+    tvisited = new std::set<Ptr<const Object> >();
+    return TraceConnectNC(nd, tracesourcename, cb);
+}
+
+bool SetInnerAttribute(Ptr<Object> nd, std::string attributename, const AttributeValue &avalue)
+{
+    bool found = false;
+    int nats = nd->GetInstanceTypeId().GetAttributeN();
+    // cerr << "In SetInnerAttribute, nats = " << nats << ", attributename = " << attributename << endl;
+    if (nats > 0)
+    {
+        for (int at = 0; at < nats; at++)
+        {
+            // cerr << "In SetInnerAttribute, at = " << at << endl;
+            PointerValue optr;
+            ObjectPtrContainerValue ocntrptr;
+            std::string atname = nd->GetInstanceTypeId().GetAttributeFullName(at);
+            std::string lastpart;
+            // cerr << "In SetInnerAttribute, about to find lastpart of atname." << endl;
+            if (!atname.empty())
+            {
+                lastpart = atname.substr(atname.find_last_of(":") + 1);
+            }
+            // cerr << "In SetInnerAttribute, lastpart = " << lastpart << endl;
+            if (!atname.empty() && !lastpart.empty() && lastpart == attributename)
+            {
+                try
+                {
+                    return nd->SetAttributeFailSafe(attributename, avalue);
+                }
+                catch (...) { return false; }
+            }
+            // cerr << "In SetInnerAttribute, lastpart was not right." << endl;
+            if (!atname.empty() && !lastpart.empty() && lastpart == "SocketList")
+            {
+                if (nd->GetAttributeFailSafe(lastpart, ocntrptr))
+                {
+                    for (uint32_t k = 0; k < ocntrptr.GetN(); k++)
+                    {
+                        try
+                        {
+                            found = SetInnerAttribute(ocntrptr.Get(k), attributename, avalue);
+                        }
+                        catch (...) { return false; }
+                        if (found) return found;
+                    }
+                }
+            }
+            else
+            {
+                bool optrfound;
+                try
+                {
+                    optrfound = nd->GetAttributeFailSafe(lastpart, optr);
+                }
+                catch (...) { return false; }
+                if (optrfound)
+                {
+                    // cerr << "In SetInnerAttribute, got the optr!" << endl;
+                    Ptr<Object> attob = optr.GetObject();
+                    if (attob)
+                    {
+                        try
+                        {
+                            found = SetInnerAttribute(attob, attributename, avalue);
+                        }
+                        catch (...)
+                        {
+                            return false;
+                        }
+                        if (found) return found;
+                    }
+                }
+                else
+                {
+                    // cerr << "In SetInnerAttribute, optr not found!" << endl;
+                }
+            }
+        }
+    }
+    int nsrcs = nd->GetInstanceTypeId().GetTraceSourceN();
+    // cerr  << "In SetInnerAttribute, nscrs = " << nsrcs << endl;
+    if (nsrcs > 0)
+    {
+        for (int src = 0; src < nsrcs; src++)
+        {
+            if (nd->GetInstanceTypeId().GetTraceSource(src).name == attributename)
+            {
+                try
+                {
+                    return nd->SetAttributeFailSafe(attributename, avalue);
+                }
+                catch (...)
+                {
+                    return false;
+                }
+            }
+        }
+    }
+    int othersrcs = 0;
+    if (nd->GetInstanceTypeId().GetName() == "ns3::DropTailQueue")
+    {
+        othersrcs = Queue::GetTypeId().GetTraceSourceN();
+    }
+    // cerr  << "In SetInnerAttribute, otherscrs = " << othersrcs << endl;
+    if (othersrcs > 0)
+    {
+        for (int osrc = 0; osrc < othersrcs; osrc++)
+        {
+            std::string srcname = Queue::GetTypeId().GetTraceSource(osrc).name;
+            if (srcname == attributename)
+            {
+                try
+                {
+                    return nd->SetAttributeFailSafe(attributename, avalue);
+                }
+                catch (...)
+                {
+                    return false;
+                }
+            }
+        }
+    }
+    // recurse through the aggregated objects
+    // cerr  << "In SetInnerAttribute, recurse through subobjects. " << endl;
+
+    if (false) try
+    {
+        Object::AggregateIterator nit = nd->GetAggregateIterator();
+        // cerr  << "In SetInnerAttribute, found the object iterator. About to check the sub-objects, if any" << endl;
+        if (!nit.HasNext())
+        {
+            // cerr << "In SetInnerAttribute, there are no sub-objects." << endl;
+        }
+        while (nit.HasNext())
+        {
+            Object* thesameob;
+            try
+            {
+                const Object* theob = PeekPointer(nit.Next());
+                thesameob = const_cast<Object*>(theob);
+            }
+            catch (...)
+            {
+                // cerr << "In SetInnerAttribute, we ran into a problem finding the sub-object, but we will press on." << endl;
+            }
+            try
+            {
+                Ptr<Object> ob(thesameob);
+                if (tvisited->count(ob) > 0) continue;
+                tvisited->insert(ob);
+                found = SetInnerAttribute(ob, attributename, avalue);
+            }
+            catch (...)
+            {
+                return false;
+            }
+            if (found) return found;
+        }
+    }
+    catch (...)
+    {
+        // cerr << "In SetInnerAttribute, we ran into a problem while looping through sub-objects. Lets try devices." << endl;
+    }
+
+    try
+    {
+        if (nd->GetInstanceTypeId().GetName() == "ns3::Node")
+        {
+            // cerr  << "In SetInnerAttribute, search through inner devices. " << endl;
+            // loop through the devices attached to this node
+            Ptr<Node> me = nd->GetObject<Node>();
+            uint32_t k = 0;
+            for (k = 0; k < me->GetNDevices(); k++)
+            {
+                // cerr  << "In SetInnerAttribute, checking device " << k << "." << endl;
+                Ptr<NetDevice> device = me->GetDevice(k);
+                try
+                {
+                    found = SetInnerAttribute(device, attributename, avalue);
+                    if (found) return found;
+                }
+                catch (...)
+                {
+                    return false;
+                }
+            }
+        }
+    }
+    catch (...)
+    {
+        // cerr << "In SetInnerAttribute, we ran into a problem while searching through devices." << endl;
+    }
+    return false;
+}
+
+Ptr<Object>  getAnInnerObject(Ptr<Object> parent, std::string oname)
+{
+    visited->insert(parent);  // avoid confusing repeat visits
+    // NS_LOG_INFO("In getAnInnerObject, Entering getAnInnerObject");
+
+    // recurse through the aggregated objects
+    Object::AggregateIterator nit = parent->GetAggregateIterator();
+    while (nit.HasNext())
+    {
+        const Object* theob = PeekPointer(nit.Next());
+        Object* thesameob = const_cast<Object*>(theob);
+        Ptr<Object> ob(thesameob);
+        if (visited->count(ob) > 0) continue;
+        visited->insert(ob);
+        Ptr<Object> nob = getAnInnerObject(ob, oname);
+        if (nob) return nob;
+    }
+
+    // NS_LOG_INFO("In getAnInnerObject, searching through devices");
+    if (parent->GetInstanceTypeId().GetName() == "ns3::Node")
+    {
+        // loop through the devices attached to this node
+        Ptr<Node> me = parent->GetObject<Node>();
+        uint32_t k = 0;
+        for (k = 0; k < me->GetNDevices(); k++)
+        {
+            Ptr<NetDevice> device = me->GetDevice(k);
+            Ptr<Object> dob = getAnInnerObject(device, oname);
+            if (dob) return dob;
+        }
+    }
+
+    // NS_LOG_INFO("In getAnInnerObject, searching through attributes");
+    int nats = parent->GetInstanceTypeId().GetAttributeN();
+    // NS_LOG_INFO("In getAnInnerObject, there are " << nats << " attributes ");
+    if (nats > 0)
+    {   // looking for sockets in an attribute which is really a socketlist
+        for (int at = 0; at < nats; at++)
+        {
+            // NS_LOG_INFO("In getAnInnerObject, up to attribute number " << at);
+            PointerValue optr;
+            ObjectPtrContainerValue ocntrptr;
+            std::string atname = parent->GetInstanceTypeId().GetAttributeFullName(at);
+            std::string lastpart;
+            if (atname.find_last_of(":") >= 0)
+            {
+                lastpart = atname.substr(atname.find_last_of(":") + 1);
+            }
+            else
+            {
+                lastpart = atname;
+            }
+            // NS_LOG_INFO("In getAnInnerObject, the attribute is " << lastpart);
+            if (lastpart == "SocketList")
+            {
+                // NS_LOG_INFO("In getAnInnerObject, found a socketlist " );
+                if (parent->GetAttributeFailSafe(lastpart, ocntrptr))
+                {
+                    for (uint32_t k = 0; k < ocntrptr.GetN(); k++)
+                    {
+                        Ptr<Object> possob = ocntrptr.Get(k);
+                        std::string possobname = possob->GetInstanceTypeId().GetName();
+                        if (possobname.find_last_of(":") >= 0)
+                        {
+                            lastpart = possobname.substr(possobname.find_last_of(":") + 1);
+                        }
+                        else
+                        {
+                            lastpart = possobname;
+                        }
+                        if (lastpart == oname)
+                        {
+                            return possob;
+                        }
+                        else
+                        {
+                            Ptr<Object> nxtchance = getAnInnerObject(possob, oname);
+                            if (nxtchance) return nxtchance;
+                        }
+                    }
+                }
+            }
+            else if (parent->GetAttributeFailSafe(lastpart, optr))
+            {
+                Ptr<Object> attob = optr.GetObject();
+                if (attob)
+                {
+                    // cerr << "I have the attribute-object." << std::endl;
+                    TypeId attobtype = attob->GetInstanceTypeId();
+                    // cerr << "I have the attribute-object's type." << std::endl;
+                    std::string attobname = attobtype.GetName();
+                    // cerr << "It is called " << attobname << std::endl;
+                    if (attobname.find_last_of(":") >= 0)
+                    {
+                        lastpart = attobname.substr(attobname.find_last_of(":") + 1);
+                    }
+                    else
+                    {
+                        lastpart = attobname;
+                    }
+                    // NS_LOG_INFO("In getAnInnerObject, the attribute subobject is called " << lastpart );
+                    if (lastpart == oname)
+                    {
+                        return attob;
+                    }
+                    else
+                    {
+                        // cerr << " Now we recurse.!" << std::endl;
+                        Ptr<Object> nxtchance = getAnInnerObject(attob, oname);
+                        if (nxtchance) return nxtchance;
+                    }
+                }
+            }
+        }
+    }
+    // NS_LOG_INFO("In getAnInnerObject, I didn't find the object called " + oname);
+    return 0;   // if we get here we didn't find the object
+}
+
+Ptr<Object> getInnerObject(Ptr<Object> parent, std::string objname)
+{
+    // NS_LOG_INFO("Entering getInnerObject, looking for a " + objname);
+    std::string pid = parent->GetInstanceTypeId().GetName();
+    std::string pname;
+    int which = 0;
+    if ((which = pid.find_last_of(":")) >= 0)
+    {
+        pname = pid.substr(which + 1);
+    }
+    else
+    {
+        pname = pid;
+    }
+    // NS_LOG_INFO("In getInnerObject: the object name we are looking for is |" << objname << "| and the name of this object is |" << pname << "|");
+    if (pname == objname) return parent;
+    visited = new std::set<Ptr<const Object> >();
+    return getAnInnerObject(parent, objname);
+}
