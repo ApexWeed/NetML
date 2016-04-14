@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Windows.Forms;
 using Apex.Layout;
 
@@ -27,6 +26,7 @@ namespace NetML
             txtObservationStartTime.Text = Parameters.ObservationStartTime.ToString();
             txtObservationStopTime.Text = Parameters.ObservationStopTime.ToString();
             chkPrintAttributes.Checked = Parameters.PrintAttributes;
+            chkAsciiTrace.Checked = Parameters.AsciiTrace;
 
             UpdateLayout();
         }
@@ -41,12 +41,12 @@ namespace NetML
                 using (Layout.BeginGroupBox(new GroupBox { Text = $"Component {++index}" }))
                 {
                     var module = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList };
-                    module.Items.AddRange(Apex.EnumUtil.GetValues<LogModule>().Cast<object>().ToArray());
+                    module.Items.AddRange(Apex.EnumUtil.GetValuesCombo<LogModule>());
                     module.SelectedItem = componentLog.LoggingModule;
                     module.SelectedIndexChanged += (object sender, EventArgs e) => { componentLog.LoggingModule = (LogModule)module.SelectedItem; };
 
                     var level = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList };
-                    level.Items.AddRange(Apex.EnumUtil.GetValues<LogLevel>().Cast<object>().ToArray());
+                    level.Items.AddRange(Apex.EnumUtil.GetValuesCombo<LogLevel>());
                     level.SelectedItem = componentLog.LoggingLevel;
                     level.SelectedIndexChanged += (object sender, EventArgs e) => { componentLog.LoggingLevel = (LogLevel)level.SelectedItem; };
 
@@ -91,20 +91,6 @@ namespace NetML
             Parent.ChildClosing(this);
         }
 
-        private void FilterNumeric(object sender, KeyPressEventArgs e)
-        {
-            if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar) && (e.KeyChar != '.'))
-            {
-                e.Handled = true;
-            }
-
-            // only allow one decimal point
-            if ((e.KeyChar == '.') && ((sender as TextBox).Text.IndexOf('.') > -1))
-            {
-                e.Handled = true;
-            }
-        }
-
         private void txtName_TextChanged(object sender, EventArgs e)
         {
             Parameters.Name = txtName.Text;
@@ -119,6 +105,16 @@ namespace NetML
         private void txtObservationStopTime_TextChanged(object sender, EventArgs e)
         {
             Parameters.ObservationStopTime = float.Parse(txtObservationStopTime.Text);
+        }
+
+        private void chkPrintAttributes_CheckedChanged(object sender, EventArgs e)
+        {
+            Parameters.PrintAttributes = chkPrintAttributes.Checked;
+        }
+
+        private void chkAsciiTrace_CheckedChanged(object sender, EventArgs e)
+        {
+            Parameters.AsciiTrace = chkAsciiTrace.Checked;
         }
     }
 }

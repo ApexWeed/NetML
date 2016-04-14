@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Security.Permissions;
 using System.Threading;
 
 namespace NetML
@@ -48,27 +49,35 @@ namespace NetML
                 Job = new Process
                 {
                     StartInfo = startInfo,
-                    EnableRaisingEvents = true,
+                    EnableRaisingEvents = true
                 };
                 Job.OutputDataReceived += OnOutputDataReceived;
                 Job.ErrorDataReceived += OnErrorDataReceived;
 
                 Job.Start();
                 Job.BeginOutputReadLine();
+                Job.BeginErrorReadLine();
 
                 Job.WaitForExit();
                 Job.CancelOutputRead();
+                Job.CancelErrorRead();
                 Job.Dispose();
                 Job = null;
             });
             Worker.Start();
         }
 
+        [SecurityPermissionAttribute(SecurityAction.Demand, ControlThread = true)]
         public void Abort()
         {
-            Worker.Abort();
-            Job.Kill();
-            Job.Dispose();
+            try
+            {
+                Job.Kill();
+            }
+            catch (Exception)
+            {
+                // wow.
+            }
         }
     }
 }

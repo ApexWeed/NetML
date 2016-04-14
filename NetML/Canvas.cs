@@ -54,7 +54,7 @@ namespace NetML
 
         public IDrawable GetItem(int X, int Y)
         {
-            foreach (var item in Items)
+            foreach (var item in Items.Where((x) => true).Reverse())
             {
                 if (item.CollisionBounds().Contains(X, Y))
                 {
@@ -69,7 +69,7 @@ namespace NetML
 
         public IDrawable GetItem(int X, int Y, Func<IDrawable, bool> Selector)
         {
-            foreach (var item in Items.Where(Selector))
+            foreach (var item in Items.Where(Selector).Reverse())
             {
                 if (item.CollisionBounds().Contains(X, Y))
                 {

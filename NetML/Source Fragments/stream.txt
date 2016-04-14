@@ -1,13 +1,13 @@
     clientApps = new ApplicationContainer();
     serverApps = new ApplicationContainer();
-    maddr = net.N<%%startNode%%>->GetObject<Ipv4MyAddress>();
+    maddr = net.N<%%endNode%%>->GetObject<Ipv4MyAddress>();
     if (maddr)
     {
         destnadd = maddr->getAddr();
     }
     else
     {
-        NS_LOG_ERROR("net.N<%%startNode%%> unexpectedly has no IP address.");
+        NS_LOG_ERROR("net.N<%%endNode%%> unexpectedly has no IP address.");
     }
     /* Server
     ftpClient = new BulkSendHelper("ns3::TcpSocketFactory", InetSocketAddress(destnadd, ftpport));

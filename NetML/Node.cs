@@ -65,24 +65,6 @@ namespace NetML
                 {
                     case DisplayProperties.NodeDisplay.Name:
                         return Name;
-                    case DisplayProperties.NodeDisplay.NodeType:
-                        return Type.ToString();
-                    case DisplayProperties.NodeDisplay.MobilityModel:
-                        return (Type == NodeType.IEEE81211 || Type == NodeType.LTE || Type == NodeType.Wimax) ? Model.ToString() : Name;
-                    case DisplayProperties.NodeDisplay.WifiStandard:
-                        return Standard.ToString();
-                    case DisplayProperties.NodeDisplay.WifiMode:
-                        return Mode.ToString();
-                    case DisplayProperties.NodeDisplay.SchedulerType:
-                        return Scheduler.ToString();
-                    case DisplayProperties.NodeDisplay.BaseAddress:
-                        return BaseAddress;
-                    case DisplayProperties.NodeDisplay.Walk:
-                        return ((Type == NodeType.IEEE81211 || Type == NodeType.LTE || Type == NodeType.Wimax) && Model == MobilityModel.RandomWalk) ? $"{{{XMin}, {XMax}, {YMin}, {YMax}}}" : Name;
-                    case DisplayProperties.NodeDisplay.DataRate:
-                        return Type == NodeType.CSMA ? DataRate.ToString() : Name;
-                    case DisplayProperties.NodeDisplay.Delay:
-                        return Type == NodeType.CSMA ? Delay.ToString() : Name;
                 }
                 return Name;
             }
@@ -135,6 +117,10 @@ namespace NetML
             var diameter = textWidth > textHeight ? textWidth : textHeight;
             if (DisplayProperties.RenderNode)
             {
+                if (diameter < 35)
+                {
+                    diameter = 35;
+                }
                 g.FillEllipse(Brushes.ForestGreen, new Rectangle((int)(X - diameter / 2), (int)(Y - diameter / 2), diameter, diameter));
                 g.DrawEllipse(Pens.Black, new Rectangle((int)(X - diameter / 2), (int)(Y - diameter / 2), diameter, diameter));
             }
@@ -149,6 +135,10 @@ namespace NetML
             var textWidth = TextRenderer.MeasureText(Text, SystemFonts.DefaultFont).Width;
             var textHeight = TextRenderer.MeasureText(Text, SystemFonts.DefaultFont).Height;
             var diameter = textWidth > textHeight ? textWidth : textHeight;
+            if (diameter < 35)
+            {
+                diameter = 35;
+            }
             return new Rectangle((int)(X - (diameter / 2) * 1.2), (int)(Y - (diameter / 2) * 1.2), (int)(diameter * 1.2), (int)(diameter * 1.2));
         }
 

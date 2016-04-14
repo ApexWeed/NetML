@@ -8,7 +8,17 @@ namespace NetML
         {
             var sorted = new List<IDrawable>();
 
-            // Put links first (drawn lowest).
+            // Put domains first (drawn lowest).
+            for (int i = 0; i < Items.Count; i++)
+            {
+                if (Items[i] is Domain)
+                {
+                    sorted.Add(Items[i]);
+                    Items.RemoveAt(i--);
+                }
+            }
+
+            // Put links second (drawn second lowest).
             for (int i = 0; i < Items.Count; i++)
             {
                 if (Items[i] is Link)
@@ -18,7 +28,7 @@ namespace NetML
                 }
             }
 
-            // Put streams second (drawn second lowest).
+            // Put streams third (drawn third lowest).
             for (int i = 0; i < Items.Count; i++)
             {
                 if (Items[i] is Stream)

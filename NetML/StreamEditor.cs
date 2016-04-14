@@ -25,7 +25,10 @@ namespace NetML
             };
 
             // Load comboboxes.
-            cmbStreamType.Items.AddRange(new object[] { Stream.StreamType.BulkFTP, Stream.StreamType.UDPPing });
+            cmbStreamType.Items.AddRange(Apex.EnumUtil.GetValuesCombo<Stream.StreamType>());
+            cmbOnDistribution.Items.AddRange(Apex.EnumUtil.GetValuesCombo<Stream.Distribution>());
+            cmbOffDistribution.Items.AddRange(Apex.EnumUtil.GetValuesCombo<Stream.Distribution>());
+            cmbTransportProtocol.Items.AddRange(Apex.EnumUtil.GetValuesCombo<Stream.Protocol>());
 
             LoadStream(Stream);
         }
@@ -66,6 +69,14 @@ namespace NetML
             numStartMaxWindowSize.Value = Stream.StartMaxWindowSize;
             numEndMaxWindowSize.Value = Stream.EndMaxWindowSize;
 
+            // OnOff fields.
+            txtCBRRate.Text = Stream.OnCBRRate;
+            cmbOnDistribution.SelectedItem = Stream.OnDistribution;
+            cmbOffDistribution.SelectedItem = Stream.OffDistribution;
+            cmbTransportProtocol.SelectedItem = Stream.TransportProtocol;
+            txtOnInterval.Text = Stream.OnInterval.ToString();
+            txtOffInterval.Text = Stream.OffInterval.ToString();
+
             Loading = false;
             UpdateLayout();
         }
@@ -87,7 +98,7 @@ namespace NetML
                     Layout.AddControl(numMaxBytes);
                 }
             }
-            else
+            else if ((Stream.StreamType)cmbStreamType.SelectedItem == Stream.StreamType.UDPPing)
             {
                 using (Layout.BeginRow())
                 {
@@ -98,6 +109,39 @@ namespace NetML
                 {
                     Layout.AddControl(lblInterval);
                     Layout.AddControl(txtInterval);
+                }
+            }
+            else if ((Stream.StreamType)cmbStreamType.SelectedItem == Stream.StreamType.OnOff)
+            {
+                using (Layout.BeginRow())
+                {
+                    Layout.AddControl(lblCBRRate);
+                    Layout.AddControl(txtCBRRate);
+                }
+                using (Layout.BeginRow())
+                {
+                    Layout.AddControl(lblOnDistribution);
+                    Layout.AddControl(cmbOnDistribution);
+                }
+                using (Layout.BeginRow())
+                {
+                    Layout.AddControl(lblOnInterval);
+                    Layout.AddControl(txtOnInterval);
+                }
+                using (Layout.BeginRow())
+                {
+                    Layout.AddControl(lblOffDistribution);
+                    Layout.AddControl(cmbOffDistribution);
+                }
+                using (Layout.BeginRow())
+                {
+                    Layout.AddControl(lblOffInterval);
+                    Layout.AddControl(txtOffInterval);
+                }
+                using (Layout.BeginRow())
+                {
+                    Layout.AddControl(lblTransportProtocol);
+                    Layout.AddControl(cmbTransportProtocol);
                 }
             }
 
@@ -146,20 +190,6 @@ namespace NetML
             this.Height = btnSave.Top + 73;
         }
 
-        private void FilterNumeric(object sender, KeyPressEventArgs e)
-        {
-            if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar) && (e.KeyChar != '.'))
-            {
-                e.Handled = true;
-            }
-
-            // only allow one decimal point
-            if ((e.KeyChar == '.') && ((sender as TextBox).Text.IndexOf('.') > -1))
-            {
-                e.Handled = true;
-            }
-        }
-
         private void btnSave_Click(object sender, System.EventArgs e)
         {
             // Nodes.
@@ -195,6 +225,14 @@ namespace NetML
             StreamLink.EndSendBufferSize = (int)numEndSendBufferSize.Value;
             StreamLink.StartMaxWindowSize = (int)numStartMaxWindowSize.Value;
             StreamLink.EndMaxWindowSize = (int)numEndMaxWindowSize.Value;
+
+            // OnOff fields.
+            StreamLink.OnCBRRate = txtCBRRate.Text;
+            StreamLink.OnDistribution = (Stream.Distribution)cmbOnDistribution.SelectedItem;
+            StreamLink.OnInterval = float.Parse(txtOnInterval.Text);
+            StreamLink.OffDistribution = (Stream.Distribution)cmbOffDistribution.SelectedItem;
+            StreamLink.OffInterval = float.Parse(txtOffInterval.Text);
+            StreamLink.TransportProtocol = (Stream.Protocol)cmbTransportProtocol.SelectedItem;
 
             Parent.RefreshCanvas();
             this.Close();

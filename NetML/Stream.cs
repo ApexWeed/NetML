@@ -10,15 +10,32 @@ namespace NetML
         public enum StreamType
         {
             UDPPing,
-            BulkFTP
+            BulkFTP,
+            OnOff
         }
 
-        private static Pen FTPLinePen;
-        private static Pen UDPLinePen;
+        public enum Distribution
+        {
+            Constant,
+            Exponential
+        }
+
+        public enum Protocol
+        {
+            Tcp,
+            Udp
+        }
+
+        private static Pen BulkFTPLinePen;
+        private static Pen UDPPingLinePen;
+        private static Pen OnOffLinePen;
         private static Pen OutlinePen;
-        private static Brush FTPArrowBrush;
-        private static Brush UDPArrowBrush;
-        private static Brush BackgroundBrush;
+        private static Brush BulkFTPArrowBrush;
+        private static Brush UDPPingArrowBrush;
+        private static Brush OnOffArrowBrush;
+        private static Brush BulkFTPBackgroundBrush;
+        private static Brush UDPPingBackgroundBrush;
+        private static Brush OnOffBackgroundBrush;
         private static Brush TextBrush;
 
         // IDrawable fields.
@@ -81,6 +98,14 @@ namespace NetML
         public int MaxBytes;
         public int FTPPort;
 
+        // OnOff fields.
+        public string OnCBRRate;
+        public Distribution OnDistribution;
+        public float OnInterval;
+        public Distribution OffDistribution;
+        public float OffInterval;
+        public Protocol TransportProtocol;
+
         // Per node fields.
         public int StartSendBufferSize;
         public int StartReceiveBufferSize;
@@ -105,6 +130,13 @@ namespace NetML
             MaxBytes = 1000000;
             FTPPort = 21;
 
+            OnCBRRate = "1Mbps";
+            OnDistribution = Distribution.Constant;
+            OnInterval = 1.0f;
+            OffDistribution = Distribution.Constant;
+            OffInterval = 1.0f;
+            TransportProtocol = Protocol.Tcp;
+
             StartSendBufferSize = 100000;
             StartReceiveBufferSize = 100000;
             StartMaxWindowSize = 65535;
@@ -112,30 +144,49 @@ namespace NetML
             EndReceiveBufferSize = 100000;
             EndMaxWindowSize = 65535;
 
+            if (BulkFTPLinePen == null)
+            {
+                BulkFTPLinePen = new Pen(Color.FromArgb(128, 064, 192, 064), 6);
+            }
+            if (UDPPingLinePen == null)
+            {
+                UDPPingLinePen = new Pen(Color.FromArgb(128, 128, 032, 128), 6);
+            }
+            if (OnOffLinePen == null)
+            {
+                OnOffLinePen = new Pen(Color.FromArgb(128, 064, 064, 192), 6);
+            }
+
             if (OutlinePen == null)
             {
                 OutlinePen = Pens.Black;
             }
-            if (FTPLinePen == null)
+
+            if (BulkFTPArrowBrush == null)
             {
-                FTPLinePen = new Pen(Color.FromArgb(128, 064, 192, 064), 6);
+                BulkFTPArrowBrush = new SolidBrush(Color.FromArgb(128, 064, 192, 064));
             }
-            if (UDPLinePen == null)
+            if (UDPPingArrowBrush == null)
             {
-                UDPLinePen = new Pen(Color.FromArgb(128, 128, 032, 128), 6);
+                UDPPingArrowBrush = new SolidBrush(Color.FromArgb(128, 128, 032, 128));
             }
-            if (FTPArrowBrush == null)
+            if (OnOffArrowBrush == null)
             {
-                FTPArrowBrush = new SolidBrush(Color.FromArgb(128, 064, 192, 064));
+                OnOffArrowBrush = new SolidBrush(Color.FromArgb(128, 064, 064, 192));
             }
-            if (UDPArrowBrush == null)
+            if (BulkFTPBackgroundBrush == null)
             {
-                UDPArrowBrush = new SolidBrush(Color.FromArgb(128, 128, 032, 128));
+                BulkFTPBackgroundBrush = new SolidBrush(Color.FromArgb(064, 048, 128, 048));
             }
-            if (BackgroundBrush == null)
+            if (UDPPingBackgroundBrush == null)
             {
-                BackgroundBrush = new SolidBrush(Color.FromArgb(064, 064, 000, 128));
+                UDPPingBackgroundBrush = new SolidBrush(Color.FromArgb(064, 064, 000, 128));
             }
+            if (OnOffBackgroundBrush == null)
+            {
+                OnOffBackgroundBrush = new SolidBrush(Color.FromArgb(064, 048, 048, 128));
+            }
+
             if (TextBrush == null)
             {
                 TextBrush = Brushes.Black;
@@ -163,6 +214,35 @@ namespace NetML
 
         public void Draw(Graphics g)
         {
+            var linePen = BulkFTPLinePen;
+            var arrowBrush = BulkFTPArrowBrush;
+            var backgroundBrush = BulkFTPBackgroundBrush;
+
+            switch (Type)
+            {
+                case StreamType.UDPPing:
+                    {
+                        linePen = UDPPingLinePen;
+                        arrowBrush = UDPPingArrowBrush;
+                        backgroundBrush = UDPPingBackgroundBrush;
+                        break;
+                    }
+                case StreamType.BulkFTP:
+                    {
+                        linePen = BulkFTPLinePen;
+                        arrowBrush = BulkFTPArrowBrush;
+                        backgroundBrush = BulkFTPBackgroundBrush;
+                        break;
+                    }
+                case StreamType.OnOff:
+                    {
+                        linePen = OnOffLinePen;
+                        arrowBrush = OnOffArrowBrush;
+                        backgroundBrush = OnOffBackgroundBrush;
+                        break;
+                    }
+            }
+
             var textWidth = g.MeasureString(Text, SystemFonts.DefaultFont).Width;
             var textHeight = g.MeasureString(Text, SystemFonts.DefaultFont).Height;
             if (StartNode != null && EndNode != null)
@@ -170,9 +250,9 @@ namespace NetML
                 if (DisplayProperties.RenderStream)
                 {
                     // Full rendering.
-                    g.DrawCurve(Type == StreamType.BulkFTP ? FTPLinePen : UDPLinePen, new PointF[] { new PointF(StartNode.X, StartNode.Y), new PointF(X, Y), new PointF(EndNode.X, EndNode.Y) });
+                    g.DrawCurve(linePen, new PointF[] { new PointF(StartNode.X, StartNode.Y), new PointF(X, Y), new PointF(EndNode.X, EndNode.Y) });
 
-                    // Arrows to show direction and duplex.
+                    // Arrows to show direction.
                     // Get line angles.
                     var lineAngle = StartNode.Position.Angle(EndNode.Position);
                     var triAngle1 = lineAngle + (Math.PI / 2);
@@ -198,7 +278,7 @@ namespace NetML
                     new PointF(X + triPoint3.X + offset.X, Y + triPoint3.Y + offset.Y)
                     };
 
-                    g.FillPolygon(Type == StreamType.BulkFTP ? FTPArrowBrush : UDPArrowBrush, points);
+                    g.FillPolygon(arrowBrush, points);
                 }
             }
             else if (StartNode != null)
@@ -206,7 +286,7 @@ namespace NetML
                 // Only render arrow from start to current location.
                 if (DisplayProperties.RenderStream)
                 {
-                    g.DrawLine(Type == StreamType.BulkFTP ? FTPLinePen : UDPLinePen, StartNode.X, StartNode.Y, X, Y);
+                    g.DrawLine(linePen, StartNode.X, StartNode.Y, X, Y);
                 }
                 return;
             }
@@ -214,7 +294,7 @@ namespace NetML
             if (DisplayProperties.RenderStreamText)
             {
                 // Only render the stream itself.
-                g.FillRectangle(BackgroundBrush, new Rectangle((int)(X - textWidth / 2), (int)(Y - textHeight / 2), (int)textWidth, (int)textHeight));
+                g.FillRectangle(backgroundBrush, new Rectangle((int)(X - textWidth / 2), (int)(Y - textHeight / 2), (int)textWidth, (int)textHeight));
                 g.DrawRectangle(OutlinePen, new Rectangle((int)(X - textWidth / 2), (int)(Y - textHeight / 2), (int)textWidth, (int)textHeight));
                 g.DrawString(Text, SystemFonts.DefaultFont, TextBrush, new Point((int)(X - textWidth / 2), (int)(Y - textHeight / 2)));
             }

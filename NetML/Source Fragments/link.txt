@@ -2,10 +2,6 @@
     NS_LOG_INFO("Creating topology");
     linknodes = new NodeContainer();
 
-    /* Add nodes
-    linknodes->Add(net.Nnode_0);
-    linknodes->Add(net.Nnode_4);
-    */
 <%%nodes%%>
 
     pointToPoint.SetDeviceAttribute("DataRate", StringValue("<%%dataRate%%>"));
@@ -15,103 +11,79 @@
 
     UintegerValue <%%linkName%%>bufferSize = <%%bufferSize%%>;
 
-    pointToPoint.SetQueue("ns3::<%%queueType%%>", "Mode", <%%linkName%%>qMode, "<%%bufferType%%>", <%%linkName%%>bufferSize);
+<%%queue%%>
 
     devices = new NetDeviceContainer();
     devices->Add(pointToPoint.Install(*linknodes));
-    /* Net devices
-    net.Llink_1 = devices->Get(0);
-    net.Llink_1_rev = devices->Get(1);
-    */
 <%%devices%%>
     address.SetBase("<%%ipAddress%%>", "<%%ipMask%%>");
     linkinterfaces = new Ipv4InterfaceContainer();
     linkinterfaces->Add(address.Assign(*devices));
     ifkount = 0;   // in case we repeat this code
-    myaddr = net.Nnode_0->GetObject<Ipv4MyAddress>();
+    myaddr = net.N<%%startNode%%>->GetObject<Ipv4MyAddress>();
     if (!myaddr)
     {
         myaddr = CreateObject<Ipv4MyAddress>();
         myaddr->setAddr(linkinterfaces->GetAddress(ifkount));
-        net.Nnode_0->AggregateObject(myaddr);
-        NS_LOG_INFO("Nnode_0 has IP address " << myaddr->getAddr());
+        net.N<%%startNode%%>->AggregateObject(myaddr);
+        NS_LOG_INFO("N<%%startNode%%> has IP address " << myaddr->getAddr());
     }
     ifkount++;
-    myaddr = net.Nnode_4->GetObject<Ipv4MyAddress>();
+    myaddr = net.N<%%endNode%%>->GetObject<Ipv4MyAddress>();
     if (!myaddr)
     {
         myaddr = CreateObject<Ipv4MyAddress>();
         myaddr->setAddr(linkinterfaces->GetAddress(ifkount));
-        net.Nnode_4->AggregateObject(myaddr);
-        NS_LOG_INFO("Nnode_4 has IP address " << myaddr->getAddr());
+        net.N<%%endNode%%>->AggregateObject(myaddr);
+        NS_LOG_INFO("N<%%endNode%%> has IP address " << myaddr->getAddr());
     }
     ifkount++;
 
     UintegerValue <%%linkName%%>_Mtu_in_bytes = <%%mtu%%>;
     UintegerValue <%%linkName%%>_<%%bufferType%%> = <%%bufferSize%%>;
+    UintegerValue <%%linkName%%>_MeanPktSize = <%%meanPacketSize%%>;
+    UintegerValue <%%linkName%%>_IdlePktSize = <%%idlePacketSize%%>;
+    BooleanValue <%%linkName%%>_Gentle = <%%gentle%%>;
+    BooleanValue <%%linkName%%>_Wait = <%%wait%%>;
+    DoubleValue <%%linkName%%>_QW = <%%QW%%>;
+    DoubleValue <%%linkName%%>_LInterm = <%%lInterm%%>;
+    DataRateValue <%%linkName%%>_LinkBandwidth;
+    if (!<%%linkName%%>_LinkBandwidth.DeserializeFromString(std::string("<%%linkBandwidth%%>"), 0))
+    {
+        NS_LOG_ERROR("Invalid value: <%%linkBandwidth%%> specified for parameter LinkBandwidth of object net.L<%%linkName%%>");
+    }
+    TimeValue <%%linkName%%>_LinkDelay;
+    if (!<%%linkName%%>_LinkDelay.DeserializeFromString(std::string("<%%linkDelay%%>"), 0))
+    {
+        NS_LOG_ERROR("Invalid value: <%%linkBandwidth%%> specified for parameter LinkBandwidth of object net.L<%%linkName%%>");
+    }
+    EnumValue <%%linkName%%>_Mode = <%%linkMode%%>;
+    DoubleValue <%%linkName%%>_MinTh = <%%minTh%%>;
+    DoubleValue <%%linkName%%>_MaxTh = <%%maxTh%%>;
+    
+    // Why not add a second set of reversed values so I can be lazier.
     UintegerValue <%%linkName%%>_rev_Mtu_in_bytes = <%%mtu%%>;
     UintegerValue <%%linkName%%>_rev_<%%bufferType%%> = <%%bufferSize%%>;
-
-
+    UintegerValue <%%linkName%%>_rev_MeanPktSize = <%%meanPacketSize%%>;
+    UintegerValue <%%linkName%%>_rev_IdlePktSize = <%%idlePacketSize%%>;
+    BooleanValue <%%linkName%%>_rev_Gentle = <%%gentle%%>;
+    BooleanValue <%%linkName%%>_rev_Wait = <%%wait%%>;
+    DoubleValue <%%linkName%%>_rev_QW = <%%QW%%>;
+    DoubleValue <%%linkName%%>_rev_LInterm = <%%lInterm%%>;
+    DataRateValue <%%linkName%%>_rev_LinkBandwidth;
+    if (!<%%linkName%%>_rev_LinkBandwidth.DeserializeFromString(std::string("<%%linkBandwidth%%>"), 0))
+    {
+        NS_LOG_ERROR("Invalid value: <%%linkBandwidth%%> specified for parameter LinkBandwidth of object net.L<%%linkName%%>");
+    }
+    TimeValue <%%linkName%%>_rev_LinkDelay;
+    if (!<%%linkName%%>_rev_LinkDelay.DeserializeFromString(std::string("<%%linkDelay%%>"), 0))
+    {
+        NS_LOG_ERROR("Invalid value: <%%linkBandwidth%%> specified for parameter LinkBandwidth of object net.L<%%linkName%%>");
+    }
+    EnumValue <%%linkName%%>_rev_Mode = <%%linkMode%%>;
+    DoubleValue <%%linkName%%>_rev_MinTh = <%%minTh%%>;
+    DoubleValue <%%linkName%%>_rev_MaxTh = <%%maxTh%%>;
+    
     // NS_LOG_INFO("About to look for an object of type PointToPointNetDevice within the object net.L<%%linkName%%>");
 
-    /*
-    linkob = getInnerObject(net.Llink_1, "PointToPointNetDevice");
-    linkob_rev = getInnerObject(net.Llink_1_rev, "PointToPointNetDevice");
-    if (!linkob_rev)
-    {
-        NS_LOG_ERROR("No luck setting the attribute Mtu_in_bytes of link_1_rev because no PointToPointNetDevice object was not found.");
-    }
-    else if (!linkob_rev->SetAttributeFailSafe("Mtu_in_bytes", link_1_Mtu_in_bytes1))
-    {
-        NS_LOG_ERROR("No luck setting the attribute Mtu_in_bytes of link_1_rev because SetAttributeFailSafe failed.");
-    }
-    else
-    {
-        NS_LOG_INFO("The attribute Mtu_in_bytes of link_1_rev has been set to 1500");
-    }
-
-    if (!linkob)
-    {
-        NS_LOG_ERROR("No luck setting the attribute Mtu_in_bytes of link_1 because no PointToPointNetDevice object was not found.");
-    }
-    else if (!linkob->SetAttributeFailSafe("Mtu_in_bytes", link_1_Mtu_in_bytes1))
-    {
-        NS_LOG_ERROR("No luck setting the attribute Mtu_in_bytes of link_1 because SetAttributeFailSafe failed.");
-    }
-    else
-    {
-        NS_LOG_INFO("The attribute Mtu_in_bytes of link_1 has been set to 1500");
-    }
-
-    // NS_LOG_INFO("About to look for an object of type DropTailQueue within the object net.Llink_1");
-
-    linkob = getInnerObject(net.Llink_1, "DropTailQueue");
-    linkob_rev = getInnerObject(net.Llink_1_rev, "DropTailQueue");
-    if (!linkob_rev)
-    {
-        NS_LOG_ERROR("No luck setting the attribute MaxPackets of link_1_rev because no DropTailQueue object was not found.");
-    }
-    else if (!linkob_rev->SetAttributeFailSafe("MaxPackets", link_1_MaxPackets2))
-    {
-        NS_LOG_ERROR("No luck setting the attribute MaxPackets of link_1_rev because SetAttributeFailSafe failed.");
-    }
-    else
-    {
-        NS_LOG_INFO("The attribute MaxPackets of link_1_rev has been set to 200");
-    }
-
-    if (!linkob)
-    {
-        NS_LOG_ERROR("No luck setting the attribute MaxPackets of link_1 because no DropTailQueue object was not found.");
-    }
-    else if (!linkob->SetAttributeFailSafe("MaxPackets", link_1_MaxPackets2))
-    {
-        NS_LOG_ERROR("No luck setting the attribute MaxPackets of link_1 because SetAttributeFailSafe failed.");
-    }
-    else
-    {
-        NS_LOG_INFO("The attribute MaxPackets of link_1 has been set to 200");
-    }
-    */
 <%%linkAttributes%%>

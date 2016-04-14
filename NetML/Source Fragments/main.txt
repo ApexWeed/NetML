@@ -5,40 +5,12 @@ int main(int argc, char *argv[])
     inputConfig.ConfigureDefaults();
 
     bool printMyAtts = <%%printAtts%%>;
+    bool asciiTrace = <%%asciiTrace%%>;
 
     std::string netname = "<%%networkName%%>";
-
-    /* Tracing.
-    Tlink_5_buffer = 0; // avoid warnings
-
-    SeqFirstlink_5_buffer = -1; // initialise
-    AckFirstlink_5_buffer = -1; // initialise
-
-    Tlink_5_buffer_FStream.open("Tass1_link_5_buffer_trace.txt");
-    Tlink_5_buffer_FStream << std::endl;
-    // so this file will always receive at least an endl
-
-
-    Tlink_5_throughput = 0; // avoid warnings
-
-    SeqFirstlink_5_throughput = -1; // initialise
-    AckFirstlink_5_throughput = -1; // initialise
-
-    Tlink_5_throughput_FStream.open("Tass1_link_5_throughput_trace.txt");
-    Tlink_5_throughput_FStream << std::endl;
-    // so this file will always receive at least an endl
-    */
 <%%openTracing%%>
 
-    /* Log Components
-    LogComponentEnable("NetmltoNs3", (LogLevel)(LOG_LEVEL_INFO | LOG_PREFIX_FUNC | LOG_PREFIX_TIME));
-    LogComponentEnable("UdpEchoServerApplication", (LogLevel)(LOG_LEVEL_INFO | LOG_PREFIX_FUNC | LOG_PREFIX_TIME));
-    LogComponentEnable("UdpEchoClientApplication", (LogLevel)(LOG_LEVEL_INFO | LOG_PREFIX_FUNC | LOG_PREFIX_TIME));
-    LogComponentEnable("BulkSendApplication", (LogLevel)(LOG_LEVEL_INFO | LOG_PREFIX_FUNC | LOG_PREFIX_TIME));
-    LogComponentEnable("PacketSink", (LogLevel)(LOG_LEVEL_INFO | LOG_PREFIX_FUNC | LOG_PREFIX_TIME));
-    */
 <%%componentLog%%>
-
 
     CommandLine cmd;
     cmd.AddValue("PrintMyAttributes", "Print the attributes of the network elements in this simulation", printMyAtts);
@@ -57,70 +29,27 @@ int main(int argc, char *argv[])
     NodeContainer* linknodes;
     Ipv4InterfaceContainer* linkinterfaces;
     
-    /* Nodes
-    nodeptr = CreateObject<Node>();
-    net.Nnode_0 = nodeptr;
-    // This node is part of the terrestrial network
-    nodes->Add(nodeptr);
-    nodeptr = CreateObject<Node>();
-    net.Nnode_1 = nodeptr;
-    // This node is part of the terrestrial network
-    nodes->Add(nodeptr);
-    nodeptr = CreateObject<Node>();
-    net.Nnode_2 = nodeptr;
-    // This node is part of the terrestrial network
-    nodes->Add(nodeptr);
-    nodeptr = CreateObject<Node>();
-    net.Nnode_3 = nodeptr;
-    // This node is part of the terrestrial network
-    nodes->Add(nodeptr);
-    nodeptr = CreateObject<Node>();
-    net.Nnode_4 = nodeptr;
-    // This node is part of the terrestrial network
-    nodes->Add(nodeptr);
-    nodeptr = CreateObject<Node>();
-    net.Nnode_5 = nodeptr;
-    // This node is part of the terrestrial network
-    nodes->Add(nodeptr);
-    Names::Add("Nnode_0", net.Nnode_0);
-    Names::Add("Nnode_1", net.Nnode_1);
-    Names::Add("Nnode_2", net.Nnode_2);
-    Names::Add("Nnode_3", net.Nnode_3);
-    Names::Add("Nnode_4", net.Nnode_4);
-    Names::Add("Nnode_5", net.Nnode_5);
-    */
 <%%nodes%%>
     stack.Install(*nodes);
-
 
     Ipv4AddressHelper address;
     int ifkount;
     Ptr<Ipv4MyAddress> myaddr;
-
 
     if (printMyAtts)
     {
         attsfile.open("<%%networkName%%>_attributes.txt");
     }
 
-
-
     PointToPointHelper pointToPoint;
     Ptr<Object> linkob, linkob_rev;
     linkob = 0, linkob_rev = 0;
-
 
     /*   /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\ Point-to-point links, one by one /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\  */
     /* Links
     */
 <%%links%%>
     /*   \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\ Point-to-point links, one by one /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/  */
-
-
-
-
-
-
 
     /*   \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ Declare Traffic/Applications \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/  */
     /* Streams
@@ -133,10 +62,10 @@ int main(int argc, char *argv[])
     Simulator::Stop(Seconds(<%%stopTime%%>));
     AsciiTraceHelper ascii;
     NS_LOG_UNCOND("About to set schedule printing of attributes, if requested.");
-    pointToPoint.EnableAsciiAll(ascii.CreateFileStream("<%%networkName%%>_trace.txt", std::ios_base::out));
-    // csma.EnableAsciiAll (ascii.CreateFileStream("<%%networkName%%>_csma_trace.txt",std::ios_base::out));
-    // this fails on the public server (but not on the development server) -- not clear why
-
+    if (asciiTrace)
+    {
+        pointToPoint.EnableAsciiAll(ascii.CreateFileStream("<%%networkName%%>_trace.txt", std::ios_base::out));
+    }
 
     if (printMyAtts)
     {
@@ -148,13 +77,7 @@ int main(int argc, char *argv[])
     // Simulator::Schedule(Seconds(5),&ReadElementStats, clrtrs.Get (0)->GetObject<Ipv4ClickRouting> ());
     NS_LOG_UNCOND("Now run the simulation.");
     Simulator::Run();
-    /* End tracing
-    Tlink_5_buffer_FStream.close();
-    Tlink_5_throughput_FStream.close();
-    */
 <%%closeTracing%%>
-
-
 
     NS_LOG_UNCOND("Simulation complete.");
     std::cerr << "Simulation complete." << std::endl;

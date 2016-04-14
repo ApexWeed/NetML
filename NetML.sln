@@ -5,10 +5,13 @@ VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetML", "NetML\NetML.csproj", "{7EAEB36C-E286-4216-BC28-9A8E28D5CBDF}"
 	ProjectSection(ProjectDependencies) = postProject
+		{F5E8E503-C3DC-4AC8-B315-7C3046260352} = {F5E8E503-C3DC-4AC8-B315-7C3046260352}
 		{C575D398-E237-4829-92C7-4741147C77E4} = {C575D398-E237-4829-92C7-4741147C77E4}
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Apex", "..\Apex\Apex\Apex.csproj", "{C575D398-E237-4829-92C7-4741147C77E4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataScalar", "..\DataScalar\DataScalar\DataScalar.csproj", "{F5E8E503-C3DC-4AC8-B315-7C3046260352}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,6 +27,10 @@ Global
 		{C575D398-E237-4829-92C7-4741147C77E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C575D398-E237-4829-92C7-4741147C77E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C575D398-E237-4829-92C7-4741147C77E4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F5E8E503-C3DC-4AC8-B315-7C3046260352}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5E8E503-C3DC-4AC8-B315-7C3046260352}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F5E8E503-C3DC-4AC8-B315-7C3046260352}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F5E8E503-C3DC-4AC8-B315-7C3046260352}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

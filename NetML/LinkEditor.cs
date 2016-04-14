@@ -26,8 +26,8 @@ namespace NetML
             };
 
             // Load comboboxes.
-            cmbQueueType.Items.AddRange(new object[] { Link.QueueType.DropTailQueue, Link.QueueType.RandomEarlyDiscard });
-            cmbPacketMode.Items.AddRange(new object[] { Link.LinkMode.Bytes, Link.LinkMode.Packets });
+            cmbQueueType.Items.AddRange(Apex.EnumUtil.GetValuesCombo<Link.QueueType>());
+            cmbPacketMode.Items.AddRange(Apex.EnumUtil.GetValuesCombo<Link.LinkMode>());
 
             LoadLink(Link);
         }

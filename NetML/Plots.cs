@@ -4,7 +4,7 @@ using Apex.Layout;
 
 namespace NetML
 {
-    public partial class Traces : Form
+    public partial class Plots : Form
     {
         new public MainForm Parent
         {
@@ -13,9 +13,9 @@ namespace NetML
         }
         new private LayoutEngine Layout;
 
-        private TraceEditor Editor;
+        private PlotEditor Editor;
 
-        public Traces(MainForm Parent)
+        public Plots(MainForm Parent)
         {
             InitializeComponent();
 
@@ -23,34 +23,33 @@ namespace NetML
             Layout = new LayoutEngine(pnlMain, Apex.Layout.LayoutEngine.ContainerType.Panel)
             {
                 ClearOnProcess = true,
+                Padding = new Padding(6)
             };
-            RefreshTraces();
+            RefreshPlots();
         }
 
-        public void RefreshTraces()
+        public void RefreshPlots()
         {
             Layout.ClearLayout();
 
-            foreach (var trace in Parent.NetworkParameters.Traces)
+            foreach (var plot in Parent.NetworkParameters.Plots)
             {
-                using (Layout.BeginGroupBox(new GroupBox { Text = trace.Name }))
+                using (Layout.BeginGroupBox(new GroupBox { Text = $"{plot.Name} ({plot.Width}x{plot.Height})" }))
                 {
-                    if (trace.Attributes != null)
+                    foreach (var attribute in plot.Attributes)
                     {
-                        foreach (var traceAttribute in trace.Attributes)
+                        using (Layout.BeginRow())
                         {
-                            using (Layout.BeginRow())
-                            {
-                                Layout.AddControl(new Label() { Text = traceAttribute.ToString() });
-                            }
+                            Layout.AddControl(new Label() { Text = attribute.ToString() });
                         }
                     }
+
                     using (Layout.BeginRow())
                     {
                         var editButton = new Button() { Text = "Edit" };
-                        editButton.Click += (object sender, EventArgs e) => { EditTrace(trace); };
+                        editButton.Click += (object sender, EventArgs e) => { EditPlot(plot); };
                         var deleteButton = new Button() { Text = "Delete" };
-                        deleteButton.Click += (object sender, EventArgs e) => { DeleteTrace(trace); };
+                        deleteButton.Click += (object sender, EventArgs e) => { DeletePlot(plot); };
                         Layout.AddControl(editButton);
                         Layout.AddControl(deleteButton);
                     }
@@ -62,58 +61,56 @@ namespace NetML
 
         public void EditorClosed()
         {
-            RefreshTraces();
+            RefreshPlots();
             Editor = null;
         }
 
-        public void DeleteTrace(Trace Trace)
-        {
-            Parent.NetworkParameters.Traces.Remove(Trace);
-            RefreshTraces();
-        }
-
-        private void EditTrace(Trace Trace)
+        private void EditPlot(Plot Plot)
         {
             if (Editor == null)
             {
-                Editor = new TraceEditor(this, Trace);
+                Editor = new PlotEditor(this, Plot);
                 Editor.Show();
             }
             else
             {
-                Editor.LoadTrace(Trace);
+                Editor.LoadPlot(Plot);
                 Editor.BringToFront();
             }
         }
 
+        public void DeletePlot(Plot Plot)
+        {
+            Parent.NetworkParameters.Plots.Remove(Plot);
+            RefreshPlots();
+        }
+
         private void btnRefresh_Click(object sender, EventArgs e)
         {
-            RefreshTraces();
+            RefreshPlots();
         }
 
         private void btnNew_Click(object sender, EventArgs e)
         {
-            var trace = new Trace
+            var plot = new Plot
             {
-                Name = "wow",
-                StartTime = 0.1f,
-                EndTime = 10.0f
+                Name = "NewPlot"
             };
-            Parent.NetworkParameters.Traces.Add(trace);
-            RefreshTraces();
-            EditTrace(trace);
+            Parent.NetworkParameters.Plots.Add(plot);
+            RefreshPlots();
+            EditPlot(plot);
         }
 
         private void btnClear_Click(object sender, EventArgs e)
         {
-            if (MessageBox.Show("Are you sure you want to delete every trace?", "Confirm Clear") == DialogResult.OK)
+            if (MessageBox.Show("Are you sure you want to delete every plot?", "Confirm Clear") == DialogResult.OK)
             {
-                Parent.NetworkParameters.Traces.Clear();
-                RefreshTraces();
+                Parent.NetworkParameters.Plots.Clear();
+                RefreshPlots();
             }
         }
 
-        private void Traces_FormClosing(object sender, FormClosingEventArgs e)
+        private void Plots_FormClosing(object sender, FormClosingEventArgs e)
         {
             if (Editor != null)
             {

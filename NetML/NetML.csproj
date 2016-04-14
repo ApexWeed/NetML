@@ -9,8 +9,9 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>NetML</RootNamespace>
     <AssemblyName>NetML</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -21,6 +22,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -30,6 +32,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Apex, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
@@ -41,6 +44,10 @@
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.8.0.3\lib\net40\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Priority Queue, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\OptimizedPriorityQueue.2.0.0\lib\net45\Priority Queue.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
@@ -66,12 +73,20 @@
     <Compile Include="Console.Designer.cs">
       <DependentUpon>Console.cs</DependentUpon>
     </Compile>
+    <Compile Include="DataManipulator.cs" />
     <Compile Include="DisplayProperties.cs" />
     <Compile Include="DisplayPropertiesEditor.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="DisplayPropertiesEditor.Designer.cs">
       <DependentUpon>DisplayPropertiesEditor.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Domain.cs" />
+    <Compile Include="DomainEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DomainEditor.Designer.cs">
+      <DependentUpon>DomainEditor.cs</DependentUpon>
     </Compile>
     <Compile Include="IDrawable.cs" />
     <Compile Include="IDrawableConverter.cs" />
@@ -85,6 +100,20 @@
     </Compile>
     <Compile Include="NodeConverter.cs" />
     <Compile Include="NodeStore.cs" />
+    <Compile Include="Plot.cs" />
+    <Compile Include="PlotAttribute.cs" />
+    <Compile Include="PlotEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="PlotEditor.Designer.cs">
+      <DependentUpon>PlotEditor.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Plots.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Plots.Designer.cs">
+      <DependentUpon>Plots.cs</DependentUpon>
+    </Compile>
     <Compile Include="StreamEditor.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -118,6 +147,7 @@
     </Compile>
     <Compile Include="Trace.cs" />
     <Compile Include="TraceAttribute.cs" />
+    <Compile Include="TraceConverter.cs" />
     <Compile Include="TraceEditor.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -136,6 +166,9 @@
     <EmbeddedResource Include="DisplayPropertiesEditor.resx">
       <DependentUpon>DisplayPropertiesEditor.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="DomainEditor.resx">
+      <DependentUpon>DomainEditor.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
     </EmbeddedResource>
@@ -145,6 +178,12 @@
     <EmbeddedResource Include="NodeEditor.resx">
       <DependentUpon>NodeEditor.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="PlotEditor.resx">
+      <DependentUpon>PlotEditor.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Plots.resx">
+      <DependentUpon>Plots.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
@@ -153,6 +192,7 @@
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
     </Compile>
     <EmbeddedResource Include="LinkEditor.resx">
       <DependentUpon>LinkEditor.cs</DependentUpon>
@@ -194,9 +234,6 @@
     <Content Include="Source Fragments\stream.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Source Fragments\streamParameters.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <Content Include="Source Fragments\streams.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -206,8 +243,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PreBuildEvent>
-    </PreBuildEvent>
+    <PreBuildEvent>COPY "$(ProjectDir)..\..\DataScalar\DataScalar\bin\$(ConfigurationName)\DataScalar.exe" "$(TargetDir)"</PreBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

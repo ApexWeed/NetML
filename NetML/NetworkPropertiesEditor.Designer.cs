@@ -37,6 +37,7 @@
             this.chkPrintAttributes = new System.Windows.Forms.CheckBox();
             this.pnlMain = new System.Windows.Forms.Panel();
             this.btnNew = new System.Windows.Forms.Button();
+            this.chkAsciiTrace = new System.Windows.Forms.CheckBox();
             this.pnlMain.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -73,7 +74,6 @@
             this.txtObservationStartTime.Size = new System.Drawing.Size(276, 19);
             this.txtObservationStartTime.TabIndex = 2;
             this.txtObservationStartTime.TextChanged += new System.EventHandler(this.txtObservationStartTime_TextChanged);
-            this.txtObservationStartTime.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.FilterNumeric);
             // 
             // label3
             // 
@@ -91,7 +91,6 @@
             this.txtObservationStopTime.Size = new System.Drawing.Size(276, 19);
             this.txtObservationStopTime.TabIndex = 4;
             this.txtObservationStopTime.TextChanged += new System.EventHandler(this.txtObservationStopTime_TextChanged);
-            this.txtObservationStopTime.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.FilterNumeric);
             // 
             // chkPrintAttributes
             // 
@@ -102,6 +101,7 @@
             this.chkPrintAttributes.TabIndex = 6;
             this.chkPrintAttributes.Text = "Dump Attributes";
             this.chkPrintAttributes.UseVisualStyleBackColor = true;
+            this.chkPrintAttributes.CheckedChanged += new System.EventHandler(this.chkPrintAttributes_CheckedChanged);
             // 
             // pnlMain
             // 
@@ -122,11 +122,23 @@
             this.btnNew.UseVisualStyleBackColor = true;
             this.btnNew.Click += new System.EventHandler(this.btnNew_Click);
             // 
+            // chkAsciiTrace
+            // 
+            this.chkAsciiTrace.AutoSize = true;
+            this.chkAsciiTrace.Location = new System.Drawing.Point(200, 87);
+            this.chkAsciiTrace.Name = "chkAsciiTrace";
+            this.chkAsciiTrace.Size = new System.Drawing.Size(83, 16);
+            this.chkAsciiTrace.TabIndex = 8;
+            this.chkAsciiTrace.Text = "Ascii Trace";
+            this.chkAsciiTrace.UseVisualStyleBackColor = true;
+            this.chkAsciiTrace.CheckedChanged += new System.EventHandler(this.chkAsciiTrace_CheckedChanged);
+            // 
             // NetworkPropertiesEditor
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(428, 471);
+            this.Controls.Add(this.chkAsciiTrace);
             this.Controls.Add(this.pnlMain);
             this.Controls.Add(this.chkPrintAttributes);
             this.Controls.Add(this.label3);
@@ -156,5 +168,6 @@
         private System.Windows.Forms.CheckBox chkPrintAttributes;
         private System.Windows.Forms.Panel pnlMain;
         private System.Windows.Forms.Button btnNew;
+        private System.Windows.Forms.CheckBox chkAsciiTrace;
     }
 }

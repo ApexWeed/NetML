@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using Apex.Extensions;
 
@@ -20,6 +18,7 @@ namespace NetML
             Move,
             Link,
             Stream,
+            Domain,
             Select
         }
 
@@ -30,12 +29,15 @@ namespace NetML
         private IDrawable Connection;
 
         new private ContextMenu ContextMenu;
-        private Traces TracesForm;
+        private Traces Traces;
+        private Plots Plots;
         private NodeEditor NodeEditor;
         private StreamEditor StreamEditor;
         private LinkEditor LinkEditor;
+        private DomainEditor DomainEditor;
         private NetworkPropertiesEditor NetworkPropertiesEditor;
         private DisplayPropertiesEditor DisplayPropertiesEditor;
+        private Console Console;
 
         public SimulationParameters NetworkParameters;
 
@@ -50,6 +52,10 @@ namespace NetML
         public IEnumerable<Stream> Streams
         {
             get { return canNetwork.Items.Where((x) => x is Stream).Select((x) => x as Stream); }
+        }
+        public IEnumerable<Domain> Domains
+        {
+            get { return canNetwork.Items.Where((x) => x is Domain).Select((x) => x as Domain); }
         }
         public List<IDrawable> Items
         {
@@ -184,8 +190,7 @@ namespace NetML
                                                 }
 
                                                 // Update stream positions.
-                                                var streams = canNetwork.Items.Where((x) => x is Stream);
-                                                foreach (Stream stream in streams)
+                                                foreach (Stream stream in Streams)
                                                 {
                                                     if (stream.StartNode == node || stream.EndNode == node)
                                                     {
@@ -239,6 +244,16 @@ namespace NetML
                                                 // Redraw changed region.
                                                 canNetwork.Invalidate(startRect.Merge(endRect));
                                             }
+                                            else if (ClickItem is Domain)
+                                            {
+                                                var domain = ClickItem as Domain;
+                                                var startRect = domain.DrawableBounds();
+                                                domain.X = e.X;
+                                                domain.Y = e.Y;
+                                                var endRect = domain.DrawableBounds();
+                                                // Redraw changed region.
+                                                canNetwork.Invalidate(startRect.Merge(endRect));
+                                            }
                                             break;
                                         }
                                     case CanvasState.Create:
@@ -278,7 +293,7 @@ namespace NetML
                                                     StartNode = node
                                                 };
 
-                                                var links = canNetwork.Items.Where((x) => x is Link).Select((x) => x as Link);
+                                                var links = Links;
                                                 var index = 0;
                                                 var name = $"link_{index}";
 
@@ -296,6 +311,7 @@ namespace NetML
                                         }
                                     case CanvasState.Create:
                                         {
+
                                             break;
                                         }
                                     case CanvasState.Link:
@@ -307,6 +323,10 @@ namespace NetML
                                             var endRect = link.DrawableBounds();
                                             // Redraw changed region.
                                             canNetwork.Invalidate(startRect.Merge(endRect));
+                                            break;
+                                        }
+                                    case CanvasState.Domain:
+                                        {
                                             break;
                                         }
                                     case CanvasState.Select:
@@ -334,7 +354,7 @@ namespace NetML
                                                     StartNode = node
                                                 };
 
-                                                var streams = canNetwork.Items.Where((x) => x is Stream).Select((x) => x as Stream);
+                                                var streams = Streams;
                                                 var index = 0;
                                                 var name = $"stream_{index}";
 
@@ -373,6 +393,49 @@ namespace NetML
                             }
                     }
                 }
+                else
+                {
+                    if (e.Button == MouseButtons.Right)
+                    {
+                        switch (State)
+                        {
+                            case CanvasState.Create:
+                                {
+                                    State = CanvasState.Domain;
+                                    var domain = new Domain
+                                    {
+                                        X = e.X,
+                                        Y = e.Y,
+                                        Radius = (float)e.Location.Distance(ClickPosition)
+                                    };
+                                    Connection = domain;
+
+                                    var domains = Domains;
+                                    var index = 0;
+                                    var name = $"domain_{index}";
+
+                                    while (domains.Count((x) => x.Name == name) > 0)
+                                    {
+                                        name = $"domain_{++index}";
+                                    }
+
+                                    domain.Name = name;
+                                    canNetwork.AddItem(domain);
+                                    break;
+                                }
+                            case CanvasState.Domain:
+                                {
+                                    var domain = Connection as Domain;
+                                    var startRect = domain.DrawableBounds();
+                                    domain.Radius = (float)e.Location.Distance(ClickPosition);
+                                    var endRect = domain.DrawableBounds();
+                                    // Redraw changed region.
+                                    canNetwork.Invalidate(startRect.Merge(endRect));
+                                    break;
+                                }
+                        }
+                    }
+                }
             }
         }
 
@@ -396,7 +459,7 @@ namespace NetML
                                         Y = e.Y,
                                         Type = Node.NodeType.Node
                                     };
-                                    var nodes = canNetwork.Items.Where((x) => x is Node).Select((x) => x as Node);
+                                    var nodes = Nodes;
                                     var index = 0;
                                     var name = $"node_{index}";
                                     
@@ -438,7 +501,7 @@ namespace NetML
                                 {
                                     if (Connection == null && ClickItem != null)
                                     {
-                                        var itemType = ClickItem is Node ? nameof(Node) : ClickItem is Link ? nameof(Link) : nameof(Stream);
+                                        var itemType = ClickItem is Node ? nameof(Node) : ClickItem is Link ? nameof(Link) : ClickItem is Stream ? nameof(Stream) : nameof(Domain);
                                         ContextMenu.MenuItems.Clear();
                                         ContextMenu.MenuItems.Add($"Edit {itemType}", EditElement);
                                         ContextMenu.MenuItems.Add($"Delete {itemType}", DeleteElement);
@@ -449,12 +512,39 @@ namespace NetML
                                 }
                             case CanvasState.Create:
                                 {
+                                    var domain = new Domain
+                                    {
+                                        X = e.X,
+                                        Y = e.Y,
+                                    };
+                                    var domains = Domains;
+                                    var index = 0;
+                                    var name = $"domain_{index}";
+
+                                    while (domains.Count((x) => x.Name == name) > 0)
+                                    {
+                                        name = $"domain_{++index}";
+                                    }
+
+                                    domain.Name = name;
+                                    canNetwork.AddItem(domain);
                                     break;
                                 }
                             case CanvasState.Move:
                                 {
                                     State = CanvasState.None;
                                     ClickItem = null;
+                                    break;
+                                }
+                            case CanvasState.Domain:
+                                {
+                                    var domain = Connection as Domain;
+                                    // TODO: add nodes to domain.
+                                    var nodes = Nodes.Where((x) => x.Position.Distance(domain.Position) < domain.Radius);
+                                    domain.Nodes.AddRange(nodes);
+                                    Connection = null;
+                                    ClickItem = null;
+                                    canNetwork.Invalidate();
                                     break;
                                 }
                             case CanvasState.Link:
@@ -508,12 +598,12 @@ namespace NetML
                                     {
                                         var start = ClickItem as Node;
                                         var end = item as Node;
-                                        var straem = Connection as Stream;
-                                        straem.EndNode = end;
-                                        straem.X = (start.X + end.X) / 2;
-                                        straem.Y = (start.Y + end.Y) / 2;
+                                        var stream = Connection as Stream;
+                                        stream.EndNode = end;
+                                        stream.X = (start.X + end.X) / 2;
+                                        stream.Y = (start.Y + end.Y) / 2;
                                         // Update drawn area.
-                                        canNetwork.UpdateItem(straem);
+                                        canNetwork.UpdateItem(stream);
                                         Connection = null;
                                         ClickItem = null;
                                     }
@@ -584,6 +674,18 @@ namespace NetML
                     StreamEditor.LoadStream(ClickItem as Stream);
                 }
             }
+            else if (ClickItem is Domain)
+            {
+                if (DomainEditor == null)
+                {
+                    DomainEditor = new DomainEditor(this, ClickItem as Domain);
+                    DomainEditor.Show();
+                }
+                else
+                {
+                    DomainEditor.LoadDomain(ClickItem as Domain);
+                }
+            }
         }
 
         private void DeleteElement(object sender, EventArgs e)
@@ -624,20 +726,42 @@ namespace NetML
             var links = Links;
             var streams = Streams;
 
-            SourceGenerator.GenerateSource(Path.Combine(Properties.Settings.Default.NS3Dir, "scratch", $"{NetworkParameters.Name}.cc"), NetworkParameters, nodes, links, streams);
-            //new Console().Show();
+            SourceGenerator.GenerateSource(Path.Combine(Properties.Settings.Default.NS3Dir, "scratch", $"{NetworkParameters.EscapedName}.cc"), NetworkParameters, nodes, links, streams);
+            if (Console == null)
+            {
+                Console = new Console(this, NetworkParameters);
+                Console.Show();
+            }
+            else
+            {
+                Console.LoadParameters(NetworkParameters);
+                Console.BringToFront();
+            }
         }
 
         private void tracesToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (TracesForm == null)
+            if (Traces == null)
             {
-                TracesForm = new Traces(this);
-                TracesForm.Show();
+                Traces = new Traces(this);
+                Traces.Show();
             }
             else
             {
-                TracesForm.Show();
+                Traces.BringToFront();
+            }
+        }
+
+        private void plotsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (Plots == null)
+            {
+                Plots = new Plots(this);
+                Plots.Show();
+            }
+            else
+            {
+                Plots.BringToFront();
             }
         }
 
@@ -645,7 +769,11 @@ namespace NetML
         {
             if (Child is Traces)
             {
-                TracesForm = null;
+                Traces = null;
+            }
+            else if (Child is Plots)
+            {
+                Plots = null;
             }
             else if (Child is NodeEditor)
             {
@@ -659,6 +787,10 @@ namespace NetML
             {
                 LinkEditor = null;
             }
+            else if (Child is DomainEditor)
+            {
+                DomainEditor = null;
+            }
             else if (Child is NetworkPropertiesEditor)
             {
                 NetworkPropertiesEditor = null;
@@ -666,6 +798,10 @@ namespace NetML
             else if (Child is DisplayPropertiesEditor)
             {
                 DisplayPropertiesEditor = null;
+            }
+            else if (Child is Console)
+            {
+                Console = null;
             }
         }
 
@@ -676,8 +812,7 @@ namespace NetML
 
         private void Save()
         {
-            var escapedName = new Regex($"[{Path.GetInvalidFileNameChars()}]").Replace(NetworkParameters.Name, "");
-            using (var fs = File.Create($"{escapedName}.network"))
+            using (var fs = File.Create($"{NetworkParameters.EscapedName}.network"))
             {
                 using (var w = new StreamWriter(fs))
                 {
@@ -685,12 +820,12 @@ namespace NetML
                 }
             }
 
-            if (!Directory.Exists(escapedName))
+            if (!Directory.Exists(NetworkParameters.EscapedName))
             {
-                Directory.CreateDirectory(escapedName);
+                Directory.CreateDirectory(NetworkParameters.EscapedName);
             }
 
-            using (var fs = File.Create(Path.Combine(escapedName, "nodes.json")))
+            using (var fs = File.Create(Path.Combine(NetworkParameters.EscapedName, "nodes.json")))
             {
                 using (var w = new StreamWriter(fs))
                 {
@@ -698,7 +833,7 @@ namespace NetML
                 }
             }
 
-            using (var fs = File.Create(Path.Combine(escapedName, "links.json")))
+            using (var fs = File.Create(Path.Combine(NetworkParameters.EscapedName, "links.json")))
             {
                 using (var w = new StreamWriter(fs))
                 {
@@ -706,7 +841,7 @@ namespace NetML
                 }
             }
 
-            using (var fs = File.Create(Path.Combine(escapedName, "streams.json")))
+            using (var fs = File.Create(Path.Combine(NetworkParameters.EscapedName, "streams.json")))
             {
                 using (var w = new StreamWriter(fs))
                 {
@@ -714,7 +849,7 @@ namespace NetML
                 }
             }
 
-            using (var fs = File.Create(Path.Combine(escapedName, "display.json")))
+            using (var fs = File.Create(Path.Combine(NetworkParameters.EscapedName, "display.json")))
             {
                 using (var w = new StreamWriter(fs))
                 {
@@ -808,6 +943,15 @@ namespace NetML
                         {
                             attribute.Element = Streams.First((x) => x.Name == (attribute.Element as Stream).Name);
                         }
+                    }
+                }
+
+                // Fix up the links in plot attributes.
+                foreach (var plot in NetworkParameters.Plots)
+                {
+                    foreach (var attribute in plot.Attributes)
+                    {
+                        attribute.TraceParameter = NetworkParameters.Traces.First((x) => x.Name == attribute.TraceParameter.Name);
                     }
                 }
 

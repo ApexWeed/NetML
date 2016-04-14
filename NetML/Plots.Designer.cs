@@ -1,6 +1,6 @@
 ﻿namespace NetML
 {
-    partial class Traces
+    partial class Plots
     {
         /// <summary>
         /// Required designer variable.
@@ -28,61 +28,20 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.pnlBottom = new System.Windows.Forms.Panel();
-            this.btnClear = new System.Windows.Forms.Button();
-            this.btnNew = new System.Windows.Forms.Button();
-            this.btnRefresh = new System.Windows.Forms.Button();
             this.pnlMain = new System.Windows.Forms.Panel();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.label2 = new System.Windows.Forms.Label();
             this.label1 = new System.Windows.Forms.Label();
             this.button2 = new System.Windows.Forms.Button();
             this.button1 = new System.Windows.Forms.Button();
-            this.pnlBottom.SuspendLayout();
+            this.pnlBottom = new System.Windows.Forms.Panel();
+            this.btnClear = new System.Windows.Forms.Button();
+            this.btnNew = new System.Windows.Forms.Button();
+            this.btnRefresh = new System.Windows.Forms.Button();
             this.pnlMain.SuspendLayout();
             this.groupBox1.SuspendLayout();
+            this.pnlBottom.SuspendLayout();
             this.SuspendLayout();
-            // 
-            // pnlBottom
-            // 
-            this.pnlBottom.Controls.Add(this.btnClear);
-            this.pnlBottom.Controls.Add(this.btnNew);
-            this.pnlBottom.Controls.Add(this.btnRefresh);
-            this.pnlBottom.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.pnlBottom.Location = new System.Drawing.Point(0, 531);
-            this.pnlBottom.Name = "pnlBottom";
-            this.pnlBottom.Size = new System.Drawing.Size(684, 30);
-            this.pnlBottom.TabIndex = 0;
-            // 
-            // btnClear
-            // 
-            this.btnClear.Location = new System.Drawing.Point(174, 3);
-            this.btnClear.Name = "btnClear";
-            this.btnClear.Size = new System.Drawing.Size(75, 23);
-            this.btnClear.TabIndex = 2;
-            this.btnClear.Text = "Clear";
-            this.btnClear.UseVisualStyleBackColor = true;
-            this.btnClear.Click += new System.EventHandler(this.btnClear_Click);
-            // 
-            // btnNew
-            // 
-            this.btnNew.Location = new System.Drawing.Point(93, 3);
-            this.btnNew.Name = "btnNew";
-            this.btnNew.Size = new System.Drawing.Size(75, 23);
-            this.btnNew.TabIndex = 1;
-            this.btnNew.Text = "New";
-            this.btnNew.UseVisualStyleBackColor = true;
-            this.btnNew.Click += new System.EventHandler(this.btnNew_Click);
-            // 
-            // btnRefresh
-            // 
-            this.btnRefresh.Location = new System.Drawing.Point(12, 3);
-            this.btnRefresh.Name = "btnRefresh";
-            this.btnRefresh.Size = new System.Drawing.Size(75, 23);
-            this.btnRefresh.TabIndex = 0;
-            this.btnRefresh.Text = "Refresh";
-            this.btnRefresh.UseVisualStyleBackColor = true;
-            this.btnRefresh.Click += new System.EventHandler(this.btnRefresh_Click);
             // 
             // pnlMain
             // 
@@ -92,7 +51,7 @@
             this.pnlMain.Location = new System.Drawing.Point(0, 0);
             this.pnlMain.Name = "pnlMain";
             this.pnlMain.Size = new System.Drawing.Size(684, 531);
-            this.pnlMain.TabIndex = 1;
+            this.pnlMain.TabIndex = 3;
             // 
             // groupBox1
             // 
@@ -105,7 +64,7 @@
             this.groupBox1.Size = new System.Drawing.Size(452, 58);
             this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
-            this.groupBox1.Text = "Bad Ass Trace";
+            this.groupBox1.Text = "Bad Ass Plot";
             // 
             // label2
             // 
@@ -143,33 +102,74 @@
             this.button1.Text = "Edit";
             this.button1.UseVisualStyleBackColor = true;
             // 
-            // Traces
+            // pnlBottom
+            // 
+            this.pnlBottom.Controls.Add(this.btnClear);
+            this.pnlBottom.Controls.Add(this.btnNew);
+            this.pnlBottom.Controls.Add(this.btnRefresh);
+            this.pnlBottom.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.pnlBottom.Location = new System.Drawing.Point(0, 531);
+            this.pnlBottom.Name = "pnlBottom";
+            this.pnlBottom.Size = new System.Drawing.Size(684, 30);
+            this.pnlBottom.TabIndex = 2;
+            // 
+            // btnClear
+            // 
+            this.btnClear.Location = new System.Drawing.Point(174, 3);
+            this.btnClear.Name = "btnClear";
+            this.btnClear.Size = new System.Drawing.Size(75, 23);
+            this.btnClear.TabIndex = 2;
+            this.btnClear.Text = "Clear";
+            this.btnClear.UseVisualStyleBackColor = true;
+            this.btnClear.Click += new System.EventHandler(this.btnClear_Click);
+            // 
+            // btnNew
+            // 
+            this.btnNew.Location = new System.Drawing.Point(93, 3);
+            this.btnNew.Name = "btnNew";
+            this.btnNew.Size = new System.Drawing.Size(75, 23);
+            this.btnNew.TabIndex = 1;
+            this.btnNew.Text = "New";
+            this.btnNew.UseVisualStyleBackColor = true;
+            this.btnNew.Click += new System.EventHandler(this.btnNew_Click);
+            // 
+            // btnRefresh
+            // 
+            this.btnRefresh.Location = new System.Drawing.Point(12, 3);
+            this.btnRefresh.Name = "btnRefresh";
+            this.btnRefresh.Size = new System.Drawing.Size(75, 23);
+            this.btnRefresh.TabIndex = 0;
+            this.btnRefresh.Text = "Refresh";
+            this.btnRefresh.UseVisualStyleBackColor = true;
+            this.btnRefresh.Click += new System.EventHandler(this.btnRefresh_Click);
+            // 
+            // Plots
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(684, 561);
             this.Controls.Add(this.pnlMain);
             this.Controls.Add(this.pnlBottom);
-            this.Name = "Traces";
-            this.Text = "Traces";
-            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Traces_FormClosing);
-            this.pnlBottom.ResumeLayout(false);
+            this.Name = "Plots";
+            this.Text = "Plots";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Plots_FormClosing);
             this.pnlMain.ResumeLayout(false);
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
+            this.pnlBottom.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
 
         #endregion
 
-        private System.Windows.Forms.Panel pnlBottom;
         private System.Windows.Forms.Panel pnlMain;
         private System.Windows.Forms.GroupBox groupBox1;
+        private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Button button2;
         private System.Windows.Forms.Button button1;
-        private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.Panel pnlBottom;
         private System.Windows.Forms.Button btnClear;
         private System.Windows.Forms.Button btnNew;
         private System.Windows.Forms.Button btnRefresh;

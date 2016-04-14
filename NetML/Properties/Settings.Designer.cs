@@ -25,7 +25,7 @@ namespace NetML.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("C:\\cygwin64\\home\\helif\\ns-allinone-3.24.1\\ns-3.24.1")]
+        [global::System.Configuration.DefaultSettingValueAttribute("C:\\cygwin64\\home\\helif\\ns-allinone-3.22\\ns-3.22")]
         public string NS3Dir {
             get {
                 return ((string)(this["NS3Dir"]));
@@ -37,13 +37,25 @@ namespace NetML.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("/home/helif/ns-allinone-3.24.1/ns-3.24.1")]
+        [global::System.Configuration.DefaultSettingValueAttribute("/home/helif/ns-allinone-3.22/ns-3.22")]
         public string CygwinDir {
             get {
                 return ((string)(this["CygwinDir"]));
             }
             set {
                 this["CygwinDir"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("C:\\cygwin64\\bin\\bash.exe")]
+        public string BashPath {
+            get {
+                return ((string)(this["BashPath"]));
+            }
+            set {
+                this["BashPath"] = value;
             }
         }
     }
