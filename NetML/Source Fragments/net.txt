@@ -4,6 +4,7 @@ public:
 <%%nodes%%>
 <%%links%%>
 <%%streams%%>
+<%%domains%%>
     Net(void) {}
 };
 
@@ -14,4 +15,5 @@ void showatts()
 <%%nodeAtts%%>
 <%%linkAtts%%>
 <%%streamAtts%%>
+<%%domainAtts%%>
 }

@@ -101,7 +101,7 @@ namespace NetML
                             LoadTrace(Trace, false);
                         };
 
-                        if (attribute.Element is Node)
+                        if (attribute.Element is Node || attribute.Element is Domain)
                         {
                             attributeCombo.Items.AddRange(new string[] { "MacTx", "MacTxDrop", "MacRx", "PhyTxEnd", "PhyTxDrop", "PhyRxEnd", "PhyRxDrop", "Tx", "Rx", "SendOutgoing", "UnicastForward", "LocalDeliver", "Enqueue", "Dequeue", "Drop" });
                         }
@@ -163,10 +163,6 @@ namespace NetML
                         attributeCombo.SelectedValueChanged += (object sender, EventArgs e) =>
                         {
                             attribute.TraceSource = attributeCombo.SelectedItem as string;
-                            chkStartTime.Checked = !Trace.CommonStartTime;
-                            chkEndTime.Checked = !Trace.CommonEndTime;
-                            chkStartTime.Checked = Trace.CommonStartTime;
-                            chkEndTime.Checked = Trace.CommonEndTime;
                             code.Text = attribute.Code;
                         };
                         using (Layout.BeginRow())
@@ -278,6 +274,8 @@ namespace NetML
             this.Text = txtName.Text;
             CurrentTrace.Name = txtName.Text;
             LoadTrace(CurrentTrace, false);
+            txtName.Focus();
+            txtName.SelectionStart = txtName.Text.Length;
         }
 
         private void btnSave_Click(object sender, EventArgs e)

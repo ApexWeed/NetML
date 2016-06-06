@@ -24,16 +24,12 @@ int main(int argc, char *argv[])
     Ptr<Node> nodeptr; nodeptr = 0;
     Ptr<Object> nodeob;
     nodeob = 0;
+    int ifkount;
 
-    NetDeviceContainer* devices;
-    NodeContainer* linknodes;
-    Ipv4InterfaceContainer* linkinterfaces;
-    
 <%%nodes%%>
     stack.Install(*nodes);
 
     Ipv4AddressHelper address;
-    int ifkount;
     Ptr<Ipv4MyAddress> myaddr;
 
     if (printMyAtts)
@@ -56,6 +52,8 @@ int main(int argc, char *argv[])
     */
 <%%streams%%>
     /*   \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ Finished Declaring Traffic/Applications \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/  */
+
+<%%domains%%>
 
     NS_LOG_UNCOND("Populate routing tables.");
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();

@@ -70,44 +70,9 @@ namespace NetML
             }
         }
 
-        public NodeType Type;
-        public string BaseAddress;
-        public MobilityModel Model;
-        public int XMin;
-        public int XMax;
-        public int YMin;
-        public int YMax;
-
-        // CSMA fields.
-        public string DataRate;
-        public string Delay;
-
-        // 802.11 fields.
-        public WifiStandard Standard;
-        public WifiMode Mode;
-
-        // Wimax fields.
-        public SchedulerType Scheduler;
-
         public Node()
         {
             Position = new Point();
-
-            Type = NodeType.Node;
-            BaseAddress = "10.0.0.0";
-            Model = MobilityModel.RandomWalk;
-            XMin = -50;
-            XMax = 50;
-            YMin = -50;
-            YMax = 50;
-
-            DataRate = "10Mbps";
-            Delay = "40ms";
-
-            Standard = WifiStandard.IEEE80211a;
-            Mode = WifiMode.Infrastructure;
-
-            Scheduler = SchedulerType.Simple;
         }
 
         public void Draw(Graphics g)

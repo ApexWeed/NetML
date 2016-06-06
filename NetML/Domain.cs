@@ -95,6 +95,7 @@ namespace NetML
                 return Name;
             }
         }
+        [Newtonsoft.Json.JsonConverter(typeof(NodeListConverter))]
         public List<Node> Nodes;
         public float Radius;
 
@@ -295,6 +296,11 @@ namespace NetML
                 diameter = 35;
             }
             return new Rectangle((int)(X - (diameter / 2) * 1.2), (int)(Y - (diameter / 2) * 1.2), (int)(diameter * 1.2), (int)(diameter * 1.2));
+        }
+
+        public override string ToString()
+        {
+            return Text;
         }
     }
 }

@@ -1,0 +1,18 @@
+    // Now look after csma and wireless nodes
+
+    NodeContainer* csmaNodes;
+    csmaNodes = 0;
+    CsmaHelper csma;
+    NetDeviceContainer* csmaDevices;
+    csmaDevices = 0;
+    Ipv4InterfaceContainer *csmaInterfaces;
+    csmaInterfaces = 0;
+
+    int csma_intfcount;
+
+    Ssid ssid;
+    NetDeviceContainer mobileDevices, wirelessAccessDevices;  
+    MobilityHelper mobility;
+
+    /* /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\ CSMA and Wireless domains, one by one /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\ */
+<%%domains%%>

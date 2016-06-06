@@ -37,6 +37,10 @@ namespace NetML
                     {
                         return new Stream { Name = name };
                     }
+                case nameof(Domain):
+                    {
+                        return new Domain { Name = name };
+                    }
                 default:
                     {
                         throw new NotImplementedException();
@@ -71,6 +75,15 @@ namespace NetML
                 serializer.Serialize(writer, nameof(Stream));
                 writer.WritePropertyName("Name");
                 serializer.Serialize(writer, (value as Stream).Name);
+                writer.WriteEndObject();
+            }
+            else if (value is Domain)
+            {
+                writer.WriteStartObject();
+                writer.WritePropertyName("Type");
+                serializer.Serialize(writer, nameof(Domain));
+                writer.WritePropertyName("Name");
+                serializer.Serialize(writer, (value as Domain).Name);
                 writer.WriteEndObject();
             }
             else

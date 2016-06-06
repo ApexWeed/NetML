@@ -88,6 +88,18 @@
     <Compile Include="DomainEditor.Designer.cs">
       <DependentUpon>DomainEditor.cs</DependentUpon>
     </Compile>
+    <Compile Include="FilePicker.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FilePicker.Designer.cs">
+      <DependentUpon>FilePicker.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FolderPicker.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FolderPicker.Designer.cs">
+      <DependentUpon>FolderPicker.cs</DependentUpon>
+    </Compile>
     <Compile Include="IDrawable.cs" />
     <Compile Include="IDrawableConverter.cs" />
     <Compile Include="IDrawableSorter.cs" />
@@ -99,6 +111,7 @@
       <DependentUpon>NetworkPropertiesEditor.cs</DependentUpon>
     </Compile>
     <Compile Include="NodeConverter.cs" />
+    <Compile Include="NodeListConverter.cs" />
     <Compile Include="NodeStore.cs" />
     <Compile Include="Plot.cs" />
     <Compile Include="PlotAttribute.cs" />
@@ -169,6 +182,12 @@
     <EmbeddedResource Include="DomainEditor.resx">
       <DependentUpon>DomainEditor.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="FilePicker.resx">
+      <DependentUpon>FilePicker.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FolderPicker.resx">
+      <DependentUpon>FolderPicker.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
     </EmbeddedResource>
@@ -219,6 +238,12 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Source Fragments\domain.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Source Fragments\domains.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Source Fragments\header.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

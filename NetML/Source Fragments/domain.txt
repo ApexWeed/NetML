@@ -1,0 +1,57 @@
+    /* /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\  CSMA  /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\ */
+    csmaNodes = new NodeContainer;
+
+    /* nodes
+    csmaNodes->Add(net.Nnode_7);
+
+    csmaNodes->Add(net.Nnode_8);
+    */
+<%%nodes%%>
+
+    csma.SetChannelAttribute("DataRate",StringValue("<%%dataRate%%>"));
+    csma.SetChannelAttribute("Delay",StringValue("<%%delay%%>"));
+    csmaDevices = new NetDeviceContainer();
+    csmaDevices->Add(csma.Install(*csmaNodes));
+    // stack.Install(*csmaNodes); // these nodes will already have their stacks
+
+    address.SetBase("<%%baseAddress%%>","255.255.255.0");
+    csmaInterfaces = new Ipv4InterfaceContainer();
+    csmaInterfaces->Add(address.Assign(*csmaDevices));
+    // csma.EnablePcapInternal ("csma_10.0.0.0.pcap", csmaDevices->Get(0), false,false);
+    ifkount = 0;   // reset to 0
+
+    // Ptr<Ipv4MyAddress> myaddr;
+
+    /* node addresses
+    myaddr = net.Nnode_7->GetObject<Ipv4MyAddress> ();
+    if (!myaddr)
+    {
+        myaddr = CreateObject<Ipv4MyAddress>();
+        myaddr->setAddr(csmaInterfaces->GetAddress(ifkount));
+        NS_LOG_INFO("Nnode_7 has IP address " << myaddr->getAddr());
+        net.Nnode_7->AggregateObject(myaddr);
+    }
+    ifkount++;
+
+    myaddr = net.Nnode_8->GetObject<Ipv4MyAddress> ();
+    if (!myaddr)
+    {
+        myaddr = CreateObject<Ipv4MyAddress>();
+        myaddr->setAddr(csmaInterfaces->GetAddress(ifkount));
+        NS_LOG_INFO("Nnode_8 has IP address " << myaddr->getAddr());
+        net.Nnode_8->AggregateObject(myaddr);
+    }
+    ifkount++;
+    */
+<%%nodeAddresses%%>
+
+    csma_intfcount=0;
+
+    /* assign devices
+    net.Dnode_15_node_7 = csmaDevices->Get(csma_intfcount);
+    csma_intfcount++;
+
+    net.Dnode_15_node_8 = csmaDevices->Get(csma_intfcount);
+    csma_intfcount++;
+    */
+<%%devices%%>

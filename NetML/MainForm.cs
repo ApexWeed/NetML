@@ -80,6 +80,47 @@ namespace NetML
 
             ContextMenu = new ContextMenu();
             DisplayProperties.Reset();
+
+            if (Properties.Settings.Default.NS3Dir == "<unset>")
+            {
+                var folderPicker = new FolderPicker("Select NS3 root", "Select the root for NS3, this is the folder that contains waf, using the Windows path.", $"C:\\cygwin64\\home\\{Environment.UserName}\\ns-allinone-3.22\\ns-3.22");
+                if (folderPicker.ShowDialog() == DialogResult.OK)
+                {
+                    Properties.Settings.Default.NS3Dir = folderPicker.ChosenFolder;
+                }
+                else
+                {
+                    MessageBox.Show("You know it won't work if you don't tell the program where NS3 is.");
+                }
+            }
+
+            if (Properties.Settings.Default.CygwinDir == "<unset>")
+            {
+                var folder = Apex.Prompt.Prompt.ShowStringDialog("Select the root for NS3, this is the folder that contains waf, using the Cygwin path.", "Select NS3 root", $"/home/{Environment.UserName}/ns-allinone-3.22/ns-3.22");
+                if (folder == null)
+                {
+                    MessageBox.Show("You know it won't work if you don't tell the program where NS3 is.");
+                }
+                else
+                {
+                    Properties.Settings.Default.CygwinDir = folder;
+                }
+            }
+
+            if (Properties.Settings.Default.BashPath == "<unset>")
+            {
+                var filePicker = new FilePicker("Select bash executable", "Select the bash executable, using the Windows path.", "C:\\cygwin64\\bin\\bash.exe", "Executable files (*.exe)|*.exe");
+                if (filePicker.ShowDialog() == DialogResult.OK)
+                {
+                    Properties.Settings.Default.BashPath = filePicker.ChosenFile;
+                }
+                else
+                {
+                    MessageBox.Show("You know it won't work if you don't tell the program where bash is.");
+                }
+            }
+
+            Properties.Settings.Default.Save();
         }
 
         public void SetTitle()
@@ -456,8 +497,7 @@ namespace NetML
                                     var node = new Node
                                     {
                                         X = e.X,
-                                        Y = e.Y,
-                                        Type = Node.NodeType.Node
+                                        Y = e.Y
                                     };
                                     var nodes = Nodes;
                                     var index = 0;
@@ -722,11 +762,7 @@ namespace NetML
 
         private void runSimulationToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var nodes = Nodes;
-            var links = Links;
-            var streams = Streams;
-
-            SourceGenerator.GenerateSource(Path.Combine(Properties.Settings.Default.NS3Dir, "scratch", $"{NetworkParameters.EscapedName}.cc"), NetworkParameters, nodes, links, streams);
+            SourceGenerator.GenerateSource(Path.Combine(Properties.Settings.Default.NS3Dir, "scratch", $"{NetworkParameters.EscapedName}.cc"), NetworkParameters, Nodes, Links, Streams, Domains);
             if (Console == null)
             {
                 Console = new Console(this, NetworkParameters);
@@ -849,6 +885,14 @@ namespace NetML
                 }
             }
 
+            using (var fs = File.Create(Path.Combine(NetworkParameters.EscapedName, "domains.json")))
+            {
+                using (var w = new StreamWriter(fs))
+                {
+                    w.Write(Newtonsoft.Json.JsonConvert.SerializeObject(Domains, Newtonsoft.Json.Formatting.Indented));
+                }
+            }
+
             using (var fs = File.Create(Path.Combine(NetworkParameters.EscapedName, "display.json")))
             {
                 using (var w = new StreamWriter(fs))
@@ -893,6 +937,16 @@ namespace NetML
                     {
                         MessageBox.Show("Streams are corrupt.");
                     }
+
+                    try
+                    {
+                        var domains = Newtonsoft.Json.JsonConvert.DeserializeObject<List<Domain>>(File.ReadAllText(System.IO.Path.Combine(networkDir, "domains.json")));
+                        canNetwork.AddItems(domains);
+                    }
+                    catch (Exception)
+                    {
+                        MessageBox.Show("Domains are corrupt.");
+                    }
                 }
                 catch (Exception)
                 {
@@ -925,7 +979,7 @@ namespace NetML
                     MessageBox.Show("Display properties are corrupt.");
                 }
 
-                // JSON can't store circular reference to parent or reference to actual Node / Link / Stream object.
+                // JSON can't store circular reference to parent or reference to actual Node / Link / Stream / Domain object.
                 foreach (var trace in NetworkParameters.Traces)
                 {
                     foreach (var attribute in trace.Attributes)
@@ -942,6 +996,10 @@ namespace NetML
                         else if (attribute.Element is Stream)
                         {
                             attribute.Element = Streams.First((x) => x.Name == (attribute.Element as Stream).Name);
+                        }
+                        else if (attribute.Element is Domain)
+                        {
+                            attribute.Element = Domains.First((x) => x.Name == (attribute.Element as Domain).Name);
                         }
                     }
                 }
@@ -977,6 +1035,7 @@ namespace NetML
                 NetworkParameters.ObservationStopTime = 10.0f;
                 NetworkParameters.PrintAttributes = false;
                 NetworkParameters.Traces = new List<Trace>();
+                NetworkParameters.Plots = new List<Plot>();
 
                 canNetwork.Items.Clear();
                 canNetwork.Invalidate();

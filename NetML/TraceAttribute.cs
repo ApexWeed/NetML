@@ -144,7 +144,7 @@
 
         public override string ToString()
         {
-            var elementName = (Element == null ? "" : (Element is Node ? (Element as Node).Name : (Element is Link ? (Element as Link).Name : (Element as Stream).Name)));
+            var elementName = (Element == null ? "" : (Element is Node ? (Element as Node).Name : (Element is Link ? (Element as Link).Name : (Element is Stream ? (Element as Stream).Name : (Element as Domain).Name))));
             return $"{elementName}.{TraceSource} -> {Code}";
             //return $"T{(Element is Node ? (Element as Node).Name : (Element as Link).Name)}_{Parent.Name}";
         }

@@ -3,13 +3,13 @@
   <Profiles />
   <Settings>
     <Setting Name="NS3Dir" Type="System.String" Scope="User">
-      <Value Profile="(Default)">C:\cygwin64\home\helif\ns-allinone-3.22\ns-3.22</Value>
+      <Value Profile="(Default)">&lt;unset&gt;</Value>
     </Setting>
     <Setting Name="CygwinDir" Type="System.String" Scope="User">
-      <Value Profile="(Default)">/home/helif/ns-allinone-3.22/ns-3.22</Value>
+      <Value Profile="(Default)">&lt;unset&gt;</Value>
     </Setting>
     <Setting Name="BashPath" Type="System.String" Scope="User">
-      <Value Profile="(Default)">C:\cygwin64\bin\bash.exe</Value>
+      <Value Profile="(Default)">&lt;unset&gt;</Value>
     </Setting>
   </Settings>
 </SettingsFile>

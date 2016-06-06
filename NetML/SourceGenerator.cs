@@ -8,15 +8,15 @@ namespace NetML
 {
     public static class SourceGenerator
     {
-        public static void GenerateSource(string OutputPath, SimulationParameters Parameters, IEnumerable<Node> Nodes, IEnumerable<Link> Links, IEnumerable<Stream> Streams)
+        public static void GenerateSource(string OutputPath, SimulationParameters Parameters, IEnumerable<Node> Nodes, IEnumerable<Link> Links, IEnumerable<Stream> Streams, IEnumerable<Domain> Domains)
         {
             using (var fs = File.Open(OutputPath, FileMode.Create))
             {
                 GenerateHeader(fs, Parameters);
-                GenerateNet(fs, Parameters, Nodes, Links, Streams);
+                GenerateNet(fs, Parameters, Nodes, Links, Streams, Domains);
                 GenerateTraces(fs, Parameters);
                 GenerateStreamParameters(fs, Parameters, Streams);
-                GenerateMain(fs, Parameters, Nodes, Links, Streams);
+                GenerateMain(fs, Parameters, Nodes, Links, Streams, Domains);
             }
         }
 
@@ -29,10 +29,12 @@ namespace NetML
         // <%%nodes%%> - The network nodes.
         // <%%links%%> - The network links.
         // <%%streams%%> - The network streams.
+        // <%%domains%%> - The network domains.
         // <%%nodeAtts%%> - Attribute display of the network nodes.
         // <%%linkAtts%%> - Attribute display of the network links.
         // <%%streamAtts%%> - Attribute display of the network streams.
-        private static void GenerateNet(System.IO.Stream OutputStream, SimulationParameters Parameters, IEnumerable<Node> Nodes, IEnumerable<Link> Links, IEnumerable<Stream> Streams)
+        // <%%domainAtts%%> - Attribute display of the network domains.
+        private static void GenerateNet(System.IO.Stream OutputStream, SimulationParameters Parameters, IEnumerable<Node> Nodes, IEnumerable<Link> Links, IEnumerable<Stream> Streams, IEnumerable<Domain> Domains)
         {
             using (var sw = new NonClosingStreamWrapper(OutputStream))
             {
@@ -71,6 +73,16 @@ namespace NetML
                     var streams = sb.ToString();
 
                     sb.Clear();
+                    foreach (var domain in Domains)
+                    {
+                        foreach (var node in domain.Nodes)
+                        {
+                            sb.Append($"    Ptr<NetDevice> D{domain.Name}_{node.Name};\n");
+                        }
+                    }
+                    var domains = sb.ToString();
+
+                    sb.Clear();
                     foreach (var node in Nodes)
                     {
                         sb.Append($"    try {{ printMyAttributes(\"{node.Text}\", \"\", attsfile, net.N{node.Name}); }}\n");
@@ -97,12 +109,24 @@ namespace NetML
                     }
                     var streamAtts = sb.ToString();
 
+                    sb.Clear();
+                    foreach (var domain in Domains)
+                    {
+                        foreach (var node in domain.Nodes)
+                        {
+                            sb.Append($"    printMyAttributes(\"{domain.Name}_{node.Name}\", \"\", attsfile, net.D{domain.Name}_{node.Name});\n");
+                        }
+                    }
+                    var domainAtts = sb.ToString();
+
                     template = template.Replace("<%%nodes%%>", nodes);
                     template = template.Replace("<%%links%%>", links);
                     template = template.Replace("<%%streams%%>", streams);
+                    template = template.Replace("<%%domains%%>", domains);
                     template = template.Replace("<%%nodeAtts%%>", nodeAtts);
                     template = template.Replace("<%%linkAtts%%>", linkAtts);
                     template = template.Replace("<%%streamAtts%%>", streamAtts);
+                    template = template.Replace("<%%domainAtts%%>", domainAtts);
 
                     write.Write(template);
                 }
@@ -111,7 +135,8 @@ namespace NetML
 
         // <%%variables%%> - The variables to hold the trace data.
         // <%%functions%%> - The functions for incrementing the trace data.
-        // <%%regTrace%%> - Register trace functions.
+        // <%%commonTraces%%> - Register trace functions with common start time.
+        // <%%uncommonTraces%%> - Register trace functions with uncommon start time.
         private static void GenerateTraces(System.IO.Stream OutputStream, SimulationParameters Parameters)
         {
             using (var sw = new NonClosingStreamWrapper(OutputStream))
@@ -138,19 +163,42 @@ namespace NetML
                         sb.Append($"// Process trace {trace.Name}\n");
                         foreach (var traceAttribute in trace.Attributes)
                         {
-                            var tracerName = $"T{trace.Name}_{traceAttribute.TraceSource}Tracer";
-                            if (tracers.ContainsKey(tracerName))
+                            if (traceAttribute.Element is Domain)
                             {
-                                tracers[tracerName]++;
+                                var domain = traceAttribute.Element as Domain;
+                                foreach (var node in domain.Nodes)
+                                {
+                                    var tracerName = $"T{trace.Name}_{node.Name}_{traceAttribute.TraceSource}Tracer";
+                                    if (tracers.ContainsKey(tracerName))
+                                    {
+                                        tracers[tracerName]++;
+                                    }
+                                    else
+                                    {
+                                        tracers.Add(tracerName, 1);
+                                    }
+                                    sb.Append($"void {tracerName}{tracers[tracerName]}({traceAttribute.AttributeType})\n");
+                                    sb.Append($"{{\n");
+                                    sb.Append($"    T{trace.Name}_FStream << Simulator::Now().GetSeconds() << \" \" << {traceAttribute.Code} << std::endl;\n");
+                                    sb.Append($"}}\n\n");
+                                }
                             }
                             else
                             {
-                                tracers.Add(tracerName, 1);
+                                var tracerName = $"T{trace.Name}_{traceAttribute.TraceSource}Tracer";
+                                if (tracers.ContainsKey(tracerName))
+                                {
+                                    tracers[tracerName]++;
+                                }
+                                else
+                                {
+                                    tracers.Add(tracerName, 1);
+                                }
+                                sb.Append($"void {tracerName}{tracers[tracerName]}({traceAttribute.AttributeType})\n");
+                                sb.Append($"{{\n");
+                                sb.Append($"    T{trace.Name}_FStream << Simulator::Now().GetSeconds() << \" \" << {traceAttribute.Code} << std::endl;\n");
+                                sb.Append($"}}\n\n");
                             }
-                            sb.Append($"void {tracerName}{tracers[tracerName]}({traceAttribute.AttributeType})\n");
-                            sb.Append($"{{\n");
-                            sb.Append($"    T{trace.Name}_FStream << Simulator::Now().GetSeconds() << \" \" << {traceAttribute.Code} << std::endl;\n");
-                            sb.Append($"}}\n\n");
                         }
                     }
                     var functions = sb.ToString();
@@ -165,65 +213,106 @@ namespace NetML
 
                         foreach (var attribute in trace.Attributes)
                         {
-                            var networkItem = "";
-                            if (attribute.Element is Link)
+                            if (attribute.Element is Domain)
                             {
-                                networkItem = $"L{(attribute.Element as Link).Name}{(attribute.LinkReverse ? "_rev" : "")}";
-                            }
-                            else if (attribute.Element is Stream)
-                            {
-                                switch (attribute.TraceSource)
+                                var domain = attribute.Element as Domain;
+                                foreach (var node in domain.Nodes)
                                 {
-                                    case "Tx":
-                                        {
-                                            networkItem = $"C{(attribute.Element as Stream).Name}";
-                                            break;
-                                        }
-                                    case "Rx":
-                                        {
-                                            networkItem = $"S{(attribute.Element as Stream).Name}";
-                                            break;
-                                        }
-                                    case "CongestionWindow":
-                                        {
-                                            networkItem = $"N{(attribute.Element as Stream).StartNode.Name}";
-                                            break;
-                                        }
-                                }
-                            }
-                            else if (attribute.Element is Node)
-                            {
-                                networkItem = $"N{(attribute.Element as Node).Name}";
-                            }
+                                    var networkItem = $"N{node.Name}";
 
-                            var tracerName = $"T{trace.Name}_{attribute.TraceSource}Tracer";
-                            if (tracers.ContainsKey(tracerName))
-                            {
-                                tracers[tracerName]++;
+                                    var tracerName = $"T{trace.Name}_{node.Name}_{attribute.TraceSource}Tracer";
+                                    if (tracers.ContainsKey(tracerName))
+                                    {
+                                        tracers[tracerName]++;
+                                    }
+                                    else
+                                    {
+                                        tracers.Add(tracerName, 1);
+                                    }
+
+                                    if (!trace.CommonStartTime)
+                                    {
+                                        outputBuilder.Append($"void setupT{trace.EscapedName}_{attribute.TraceSource}()\n{{\n");
+                                    }
+
+                                    outputBuilder.Append($"    // Set up tracing for T{trace.Name} of type {attribute.AttributeType}\n");
+                                    outputBuilder.Append($"    if (TraceConnectNoContext(net.{networkItem}, \"{attribute.TraceSource}\", MakeCallback(&{tracerName}{tracers[tracerName]})))\n");
+                                    outputBuilder.Append($"    {{\n");
+                                    outputBuilder.Append($"        NS_LOG_INFO(\"Tracing for {attribute.TraceSource} at node {networkItem} was successfully set up\");\n");
+                                    outputBuilder.Append($"    }}\n");
+                                    outputBuilder.Append($"    else\n");
+                                    outputBuilder.Append($"    {{\n");
+                                    outputBuilder.Append($"        NS_LOG_ERROR(\"Tracing for {attribute.TraceSource} at node {networkItem} was not successfully set up\");\n");
+                                    outputBuilder.Append($"    }}\n\n");
+
+                                    if (!trace.CommonStartTime)
+                                    {
+                                        outputBuilder.Append($"}}\n");
+                                    }
+                                }
                             }
                             else
                             {
-                                tracers.Add(tracerName, 1);
-                            }
+                                var networkItem = "";
+                                if (attribute.Element is Link)
+                                {
+                                    networkItem = $"L{(attribute.Element as Link).Name}{(attribute.LinkReverse ? "_rev" : "")}";
+                                }
+                                else if (attribute.Element is Stream)
+                                {
+                                    switch (attribute.TraceSource)
+                                    {
+                                        case "Tx":
+                                            {
+                                                networkItem = $"C{(attribute.Element as Stream).Name}";
+                                                break;
+                                            }
+                                        case "Rx":
+                                            {
+                                                networkItem = $"S{(attribute.Element as Stream).Name}";
+                                                break;
+                                            }
+                                        case "CongestionWindow":
+                                            {
+                                                networkItem = $"N{(attribute.Element as Stream).StartNode.Name}";
+                                                break;
+                                            }
+                                    }
+                                }
+                                else if (attribute.Element is Node)
+                                {
+                                    networkItem = $"N{(attribute.Element as Node).Name}";
+                                }
 
-                            if (!trace.CommonStartTime)
-                            {
-                                outputBuilder.Append($"void setupT{trace.EscapedName}_{attribute.TraceSource}()\n{{\n");
-                            }
+                                var tracerName = $"T{trace.Name}_{attribute.TraceSource}Tracer";
+                                if (tracers.ContainsKey(tracerName))
+                                {
+                                    tracers[tracerName]++;
+                                }
+                                else
+                                {
+                                    tracers.Add(tracerName, 1);
+                                }
 
-                            outputBuilder.Append($"    // Set up tracing for T{trace.Name} of type {attribute.AttributeType}\n");
-                            outputBuilder.Append($"    if (TraceConnectNoContext(net.{networkItem}, \"{attribute.TraceSource}\", MakeCallback(&{tracerName}{tracers[tracerName]})))\n");
-                            outputBuilder.Append($"    {{\n");
-                            outputBuilder.Append($"        NS_LOG_INFO(\"Tracing for {attribute.TraceSource} at node {networkItem} was successfully set up\");\n");
-                            outputBuilder.Append($"    }}\n");
-                            outputBuilder.Append($"    else\n");
-                            outputBuilder.Append($"    {{\n");
-                            outputBuilder.Append($"        NS_LOG_ERROR(\"Tracing for {attribute.TraceSource} at node {networkItem} was not successfully set up\");\n");
-                            outputBuilder.Append($"    }}\n\n");
+                                if (!trace.CommonStartTime)
+                                {
+                                    outputBuilder.Append($"void setupT{trace.EscapedName}_{attribute.TraceSource}()\n{{\n");
+                                }
 
-                            if (!trace.CommonStartTime)
-                            {
-                                outputBuilder.Append($"}}\n");
+                                outputBuilder.Append($"    // Set up tracing for T{trace.Name} of type {attribute.AttributeType}\n");
+                                outputBuilder.Append($"    if (TraceConnectNoContext(net.{networkItem}, \"{attribute.TraceSource}\", MakeCallback(&{tracerName}{tracers[tracerName]})))\n");
+                                outputBuilder.Append($"    {{\n");
+                                outputBuilder.Append($"        NS_LOG_INFO(\"Tracing for {attribute.TraceSource} at node {networkItem} was successfully set up\");\n");
+                                outputBuilder.Append($"    }}\n");
+                                outputBuilder.Append($"    else\n");
+                                outputBuilder.Append($"    {{\n");
+                                outputBuilder.Append($"        NS_LOG_ERROR(\"Tracing for {attribute.TraceSource} at node {networkItem} was not successfully set up\");\n");
+                                outputBuilder.Append($"    }}\n\n");
+
+                                if (!trace.CommonStartTime)
+                                {
+                                    outputBuilder.Append($"}}\n");
+                                }
                             }
                         }
                     }
@@ -288,10 +377,11 @@ namespace NetML
         // <%%nodes%%> - Set up of the nodes.
         // <%%links%%> - Set up of the links.
         // <%%streams%%> - Set up of the streams.
+        // <%%domains%%> - Set up of the domains.
         // <%%stopTime%%> - Time in seconds after starting to end the simulation.
         // <%%observationTime%%> - Time after the simulation starts to begin observation.
         // <%%closeTracing%%> - Close the trace streams.
-        private static void GenerateMain(System.IO.Stream OutputStream, SimulationParameters Parameters, IEnumerable<Node> Nodes, IEnumerable<Link> Links, IEnumerable<Stream> Streams)
+        private static void GenerateMain(System.IO.Stream OutputStream, SimulationParameters Parameters, IEnumerable<Node> Nodes, IEnumerable<Link> Links, IEnumerable<Stream> Streams, IEnumerable<Domain> Domains)
         {
             using (var sw = new NonClosingStreamWrapper(OutputStream))
             {
@@ -339,6 +429,8 @@ namespace NetML
 
                     var streams = GenerateStreams(Parameters, Streams);
 
+                    var domains = GenerateDomains(Parameters, Domains);
+
                     sb.Clear();
                     foreach (var trace in Parameters.Traces)
                     {
@@ -354,6 +446,7 @@ namespace NetML
                     template = template.Replace("<%%nodes%%>", nodes);
                     template = template.Replace("<%%links%%>", links);
                     template = template.Replace("<%%streams%%>", streams);
+                    template = template.Replace("<%%domains%%>", domains);
                     template = template.Replace("<%%stopTime%%>", Parameters.ObservationStopTime.ToString());
                     template = template.Replace("<%%observationTime%%>", Parameters.ObservationStartTime.ToString());
                     template = template.Replace("<%%closeTracing%%>", closeTracing);
@@ -381,83 +474,62 @@ namespace NetML
         private static string GenerateLinks(SimulationParameters Parameters, IEnumerable<Link> Links)
         {
             var sbRet = new StringBuilder();
-
-            foreach (var link in Links)
+            if (Links.Count() > 0)
             {
-                if (link.StartNode == null || link.EndNode == null)
-                {
-                    continue;
-                }
+                sbRet.Append($"    NetDeviceContainer* devices;\n");
+                sbRet.Append($"    NodeContainer* linknodes;\n");
+                sbRet.Append($"    Ipv4InterfaceContainer* linkinterfaces;\n");
 
-                var template = File.ReadAllText(@"Source Fragments/link.txt");
+                foreach (var link in Links)
+                {
+                    if (link.StartNode == null || link.EndNode == null)
+                    {
+                        continue;
+                    }
 
-                var sb = new StringBuilder();
-                sb.Append($"    linknodes->Add(net.N{link.StartNode.Name});\n");
-                sb.Append($"    linknodes->Add(net.N{link.EndNode.Name});\n");
-                var nodes = sb.ToString();
+                    var template = File.ReadAllText(@"Source Fragments/link.txt");
 
-                var queueType = "";
-                switch (link.Queue)
-                {
-                    case Link.QueueType.DropTailQueue:
-                        {
-                            queueType = "DropTailQueue";
-                            break;
-                        }
-                    case Link.QueueType.RandomEarlyDiscard:
-                        {
-                            queueType = "RedQueue";
-                            break;
-                        }
-                }
+                    var sb = new StringBuilder();
+                    sb.Append($"    linknodes->Add(net.N{link.StartNode.Name});\n");
+                    sb.Append($"    linknodes->Add(net.N{link.EndNode.Name});\n");
+                    var nodes = sb.ToString();
 
-                var queue = "";
-                if (link.Queue == Link.QueueType.DropTailQueue)
-                {
-                    queue = $"    pointToPoint.SetQueue(\"ns3::{queueType}\", \"Mode\", {link.Name}qMode, \"{(link.Mode == Link.LinkMode.Packets ? "MaxPackets" : "MaxBytes")}\", {link.Name}bufferSize);";
-                }
-                else
-                {
-                    queue = $"    pointToPoint.SetQueue(\"ns3::{queueType}\", \"Mode\", {link.Name}qMode);";
-                }
+                    var queueType = "";
+                    switch (link.Queue)
+                    {
+                        case Link.QueueType.DropTailQueue:
+                            {
+                                queueType = "DropTailQueue";
+                                break;
+                            }
+                        case Link.QueueType.RandomEarlyDiscard:
+                            {
+                                queueType = "RedQueue";
+                                break;
+                            }
+                    }
 
-                sb.Clear();
-                sb.Append($"    net.L{link.Name} = devices->Get(0);\n");
-                if (link.Duplex)
-                {
-                    sb.Append($"    net.L{link.Name}_rev = devices->Get(1);\n");
-                }
-                var devices = sb.ToString();
+                    var queue = "";
+                    if (link.Queue == Link.QueueType.DropTailQueue)
+                    {
+                        queue = $"    pointToPoint.SetQueue(\"ns3::{queueType}\", \"Mode\", {link.Name}qMode, \"{(link.Mode == Link.LinkMode.Packets ? "MaxPackets" : "MaxBytes")}\", {link.Name}bufferSize);";
+                    }
+                    else
+                    {
+                        queue = $"    pointToPoint.SetQueue(\"ns3::{queueType}\", \"Mode\", {link.Name}qMode);";
+                    }
 
-                sb.Clear();
-                sb.Append($"    linkob = getInnerObject(net.L{link.Name}, \"PointToPointNetDevice\");\n");
-                sb.Append(GenerateAttribute("linkob", "PointToPointNetDevice", link.Name, "Mtu_in_bytes", link.Mtu.ToString()));
-                if (link.Queue == Link.QueueType.DropTailQueue)
-                {
-                    sb.Append($"    linkob = getInnerObject(net.L{link.Name}, \"{queueType}\");\n");
-                    sb.Append(GenerateAttribute("linkob", queueType, link.Name, link.Mode == Link.LinkMode.Packets ? "MaxPackets" : "MaxBytes", link.Mode == Link.LinkMode.Packets ? link.MaxPackets.ToString() : link.MaxBytes.ToString()));
-                }
-                else if (link.Queue == Link.QueueType.RandomEarlyDiscard)
-                {
-                    sb.Append($"    linkob = getInnerObject(net.L{link.Name}, \"{queueType}\");\n");
-                    sb.Append(GenerateAttribute("linkob", queueType, link.Name, "MeanPktSize", link.MeanPacketSize.ToString()));
-                    sb.Append(GenerateAttribute("linkob", queueType, link.Name, "IdlePktSize", link.IdlePacketSize.ToString()));
-                    sb.Append(GenerateAttribute("linkob", queueType, link.Name, "Gentle", link.Gentle ? "true" : "false"));
-                    sb.Append(GenerateAttribute("linkob", queueType, link.Name, "Wait", link.Wait ? "true" : "false"));
-                    sb.Append(GenerateAttribute("linkob", queueType, link.Name, "QW", link.QW.ToString()));
-                    sb.Append(GenerateAttribute("linkob", queueType, link.Name, "LInterm", link.Linterm.ToString()));
-                    sb.Append(GenerateAttribute("linkob", queueType, link.Name, "LinkBandwidth", link.LinkBandwidth.ToString()));
-                    sb.Append(GenerateAttribute("linkob", queueType, link.Name, "LinkDelay", link.LinkDelay.ToString()));
-                    sb.Append(GenerateAttribute("linkob", queueType, link.Name, "Mode", link.Mode == Link.LinkMode.Packets ? "PACKETS" : "BYTES"));
-                    sb.Append(GenerateAttribute("linkob", queueType, link.Name, "MinTh", link.MinTh.ToString()));
-                    sb.Append(GenerateAttribute("linkob", queueType, link.Name, "MaxTh", link.MaxTh.ToString()));
-                }
+                    sb.Clear();
+                    sb.Append($"    net.L{link.Name} = devices->Get(0);\n");
+                    if (link.Duplex)
+                    {
+                        sb.Append($"    net.L{link.Name}_rev = devices->Get(1);\n");
+                    }
+                    var devices = sb.ToString();
 
-                // Only update the reverse link if it's duplex.
-                if (link.Duplex)
-                {
-                    sb.Append($"    linkob_rev = getInnerObject(net.L{link.Name}_rev, \"PointToPointNetDevice\");\n");
-                    sb.Append(GenerateAttribute("linkob_rev", "PointToPointNetDevice", $"{link.Name}_rev", "Mtu_in_bytes", link.Mtu.ToString()));
+                    sb.Clear();
+                    sb.Append($"    linkob = getInnerObject(net.L{link.Name}, \"PointToPointNetDevice\");\n");
+                    sb.Append(GenerateAttribute("linkob", "PointToPointNetDevice", link.Name, "Mtu_in_bytes", link.Mtu.ToString()));
                     if (link.Queue == Link.QueueType.DropTailQueue)
                     {
                         sb.Append($"    linkob = getInnerObject(net.L{link.Name}, \"{queueType}\");\n");
@@ -465,52 +537,79 @@ namespace NetML
                     }
                     else if (link.Queue == Link.QueueType.RandomEarlyDiscard)
                     {
-                        sb.Append($"    linkob_rev = getInnerObject(net.L{link.Name}_rev, \"{queueType}\");\n");
-                        sb.Append(GenerateAttribute("linkob_rev", queueType, link.Name, "MeanPktSize", link.MeanPacketSize.ToString()));
-                        sb.Append(GenerateAttribute("linkob_rev", queueType, link.Name, "IdlePktSize", link.IdlePacketSize.ToString()));
-                        sb.Append(GenerateAttribute("linkob_rev", queueType, link.Name, "Gentle", link.Gentle ? "true" : "false"));
-                        sb.Append(GenerateAttribute("linkob_rev", queueType, link.Name, "Wait", link.Wait ? "true" : "false"));
-                        sb.Append(GenerateAttribute("linkob_rev", queueType, link.Name, "QW", link.QW.ToString()));
-                        sb.Append(GenerateAttribute("linkob_rev", queueType, link.Name, "LInterm", link.Linterm.ToString()));
-                        sb.Append(GenerateAttribute("linkob_rev", queueType, link.Name, "LinkBandwidth", link.LinkBandwidth.ToString()));
-                        sb.Append(GenerateAttribute("linkob_rev", queueType, link.Name, "LinkDelay", link.LinkDelay.ToString()));
-                        sb.Append(GenerateAttribute("linkob_rev", queueType, link.Name, "Mode", link.Mode == Link.LinkMode.Packets ? "PACKETS" : "BYTES"));
-                        sb.Append(GenerateAttribute("linkob_rev", queueType, link.Name, "MinTh", link.MinTh.ToString()));
-                        sb.Append(GenerateAttribute("linkob_rev", queueType, link.Name, "MaxTh", link.MaxTh.ToString()));
+                        sb.Append($"    linkob = getInnerObject(net.L{link.Name}, \"{queueType}\");\n");
+                        sb.Append(GenerateAttribute("linkob", queueType, link.Name, "MeanPktSize", link.MeanPacketSize.ToString()));
+                        sb.Append(GenerateAttribute("linkob", queueType, link.Name, "IdlePktSize", link.IdlePacketSize.ToString()));
+                        sb.Append(GenerateAttribute("linkob", queueType, link.Name, "Gentle", link.Gentle ? "true" : "false"));
+                        sb.Append(GenerateAttribute("linkob", queueType, link.Name, "Wait", link.Wait ? "true" : "false"));
+                        sb.Append(GenerateAttribute("linkob", queueType, link.Name, "QW", link.QW.ToString()));
+                        sb.Append(GenerateAttribute("linkob", queueType, link.Name, "LInterm", link.Linterm.ToString()));
+                        sb.Append(GenerateAttribute("linkob", queueType, link.Name, "LinkBandwidth", link.LinkBandwidth.ToString()));
+                        sb.Append(GenerateAttribute("linkob", queueType, link.Name, "LinkDelay", link.LinkDelay.ToString()));
+                        sb.Append(GenerateAttribute("linkob", queueType, link.Name, "Mode", link.Mode == Link.LinkMode.Packets ? "PACKETS" : "BYTES"));
+                        sb.Append(GenerateAttribute("linkob", queueType, link.Name, "MinTh", link.MinTh.ToString()));
+                        sb.Append(GenerateAttribute("linkob", queueType, link.Name, "MaxTh", link.MaxTh.ToString()));
                     }
+
+                    // Only update the reverse link if it's duplex.
+                    if (link.Duplex)
+                    {
+                        sb.Append($"    linkob_rev = getInnerObject(net.L{link.Name}_rev, \"PointToPointNetDevice\");\n");
+                        sb.Append(GenerateAttribute("linkob_rev", "PointToPointNetDevice", $"{link.Name}_rev", "Mtu_in_bytes", link.Mtu.ToString()));
+                        if (link.Queue == Link.QueueType.DropTailQueue)
+                        {
+                            sb.Append($"    linkob = getInnerObject(net.L{link.Name}, \"{queueType}\");\n");
+                            sb.Append(GenerateAttribute("linkob", queueType, link.Name, link.Mode == Link.LinkMode.Packets ? "MaxPackets" : "MaxBytes", link.Mode == Link.LinkMode.Packets ? link.MaxPackets.ToString() : link.MaxBytes.ToString()));
+                        }
+                        else if (link.Queue == Link.QueueType.RandomEarlyDiscard)
+                        {
+                            sb.Append($"    linkob_rev = getInnerObject(net.L{link.Name}_rev, \"{queueType}\");\n");
+                            sb.Append(GenerateAttribute("linkob_rev", queueType, link.Name, "MeanPktSize", link.MeanPacketSize.ToString()));
+                            sb.Append(GenerateAttribute("linkob_rev", queueType, link.Name, "IdlePktSize", link.IdlePacketSize.ToString()));
+                            sb.Append(GenerateAttribute("linkob_rev", queueType, link.Name, "Gentle", link.Gentle ? "true" : "false"));
+                            sb.Append(GenerateAttribute("linkob_rev", queueType, link.Name, "Wait", link.Wait ? "true" : "false"));
+                            sb.Append(GenerateAttribute("linkob_rev", queueType, link.Name, "QW", link.QW.ToString()));
+                            sb.Append(GenerateAttribute("linkob_rev", queueType, link.Name, "LInterm", link.Linterm.ToString()));
+                            sb.Append(GenerateAttribute("linkob_rev", queueType, link.Name, "LinkBandwidth", link.LinkBandwidth.ToString()));
+                            sb.Append(GenerateAttribute("linkob_rev", queueType, link.Name, "LinkDelay", link.LinkDelay.ToString()));
+                            sb.Append(GenerateAttribute("linkob_rev", queueType, link.Name, "Mode", link.Mode == Link.LinkMode.Packets ? "PACKETS" : "BYTES"));
+                            sb.Append(GenerateAttribute("linkob_rev", queueType, link.Name, "MinTh", link.MinTh.ToString()));
+                            sb.Append(GenerateAttribute("linkob_rev", queueType, link.Name, "MaxTh", link.MaxTh.ToString()));
+                        }
+                    }
+                    var linkAttributes = sb.ToString();
+
+                    template = template.Replace("<%%nodes%%>", nodes);
+                    template = template.Replace("<%%queue%%>", queue);
+                    template = template.Replace("<%%linkName%%>", link.Name);
+                    template = template.Replace("<%%dataRate%%>", link.DataRate);
+                    template = template.Replace("<%%delay%%>", link.Delay);
+                    template = template.Replace("<%%linkMode%%>", link.Mode == Link.LinkMode.Packets ? "PACKETS" : "BYTES");
+                    template = template.Replace("<%%bufferSize%%>", link.Mode == Link.LinkMode.Packets ? link.MaxPackets.ToString() : link.MaxBytes.ToString());
+
+                    template = template.Replace("<%%meanPacketSize%%>", link.MeanPacketSize.ToString());
+                    template = template.Replace("<%%idlePacketSize%%>", link.IdlePacketSize.ToString());
+                    template = template.Replace("<%%gentle%%>", link.Gentle ? "true" : "false");
+                    template = template.Replace("<%%wait%%>", link.Wait ? "true" : "false");
+                    template = template.Replace("<%%QW%%>", link.QW.ToString());
+                    template = template.Replace("<%%lInterm%%>", link.Linterm.ToString());
+                    template = template.Replace("<%%linkBandwidth%%>", link.LinkBandwidth);
+                    template = template.Replace("<%%linkDelay%%>", link.LinkDelay.ToString());
+                    template = template.Replace("<%%minTh%%>", link.MinTh.ToString());
+                    template = template.Replace("<%%maxTh%%>", link.MaxTh.ToString());
+
+                    template = template.Replace("<%%queueType%%>", queueType);
+                    template = template.Replace("<%%bufferType%%>", link.Mode == Link.LinkMode.Packets ? "MaxPackets" : "MaxBytes");
+                    template = template.Replace("<%%devices%%>", devices);
+                    template = template.Replace("<%%startNode%%>", $"{link.StartNode.Name}");
+                    template = template.Replace("<%%endNode%%>", $"{link.EndNode.Name}");
+                    template = template.Replace("<%%ipAddress%%>", link.BaseAddress);
+                    template = template.Replace("<%%ipMask%%>", link.Mask);
+                    template = template.Replace("<%%mtu%%>", link.Mtu.ToString());
+                    template = template.Replace("<%%linkAttributes%%>", linkAttributes);
+
+                    sbRet.Append(template);
                 }
-                var linkAttributes = sb.ToString();
-
-                template = template.Replace("<%%nodes%%>", nodes);
-                template = template.Replace("<%%queue%%>", queue);
-                template = template.Replace("<%%linkName%%>", link.Name);
-                template = template.Replace("<%%dataRate%%>", link.DataRate);
-                template = template.Replace("<%%delay%%>", link.Delay);
-                template = template.Replace("<%%linkMode%%>", link.Mode == Link.LinkMode.Packets ? "PACKETS" : "BYTES");
-                template = template.Replace("<%%bufferSize%%>", link.Mode == Link.LinkMode.Packets ? link.MaxPackets.ToString() : link.MaxBytes.ToString());
-
-                template = template.Replace("<%%meanPacketSize%%>", link.MeanPacketSize.ToString());
-                template = template.Replace("<%%idlePacketSize%%>", link.IdlePacketSize.ToString());
-                template = template.Replace("<%%gentle%%>", link.Gentle ? "true" : "false");
-                template = template.Replace("<%%wait%%>", link.Wait ? "true" : "false");
-                template = template.Replace("<%%QW%%>", link.QW.ToString());
-                template = template.Replace("<%%lInterm%%>", link.Linterm.ToString());
-                template = template.Replace("<%%linkBandwidth%%>", link.LinkBandwidth);
-                template = template.Replace("<%%linkDelay%%>", link.LinkDelay.ToString());
-                template = template.Replace("<%%minTh%%>", link.MinTh.ToString());
-                template = template.Replace("<%%maxTh%%>", link.MaxTh.ToString());
-
-                template = template.Replace("<%%queueType%%>", queueType);
-                template = template.Replace("<%%bufferType%%>", link.Mode == Link.LinkMode.Packets ? "MaxPackets" : "MaxBytes");
-                template = template.Replace("<%%devices%%>", devices);
-                template = template.Replace("<%%startNode%%>", $"{link.StartNode.Name}");
-                template = template.Replace("<%%endNode%%>", $"{link.EndNode.Name}");
-                template = template.Replace("<%%ipAddress%%>", link.BaseAddress);
-                template = template.Replace("<%%ipMask%%>", link.Mask);
-                template = template.Replace("<%%mtu%%>", link.Mtu.ToString());
-                template = template.Replace("<%%linkAttributes%%>", linkAttributes);
-
-                sbRet.Append(template);
             }
 
             return sbRet.ToString();
@@ -657,6 +756,72 @@ namespace NetML
 
             template = template.Replace("<%%serverHelpers%%>", serverHelpers);
             template = template.Replace("<%%streams%%>", streams);
+
+            return template;
+        }
+
+        // <%%domains%%> - The contents of the domain.
+        // <%%dataRate%%> - Data rate of the domain.
+        // <%%nodes%%> - Add nodes to the domain.
+        // <%%delay%%> - Delay of the domain.
+        // <%%baseAddress%%> - Base address of the domain
+        // <%%nodeAddresses%%> - Set up the node addresses in the domain.
+        // <%%devices%%> - Assign devices to net object.
+        private static string GenerateDomains(SimulationParameters Parameters, IEnumerable<Domain> Domains)
+        {
+            if (Domains.Count() == 0)
+            {
+                // Don't return the unused variables.
+                return "";
+            }
+
+            var template = File.ReadAllText(@"Source Fragments/domains.txt");
+
+            var sb = new StringBuilder();
+            foreach (var domain in Domains)
+            {
+                var domainTemplate = File.ReadAllText(@"Source Fragments/domain.txt");
+
+                var domainSb = new StringBuilder();
+                foreach (var node in domain.Nodes)
+                {
+                    domainSb.Append($"    csmaNodes->Add(net.N{node.Name});\n");
+                }
+                var nodes = domainSb.ToString();
+
+                domainSb.Clear();
+                foreach (var node in domain.Nodes)
+                {
+                    domainSb.Append($"    myaddr = net.N{node.Name}->GetObject<Ipv4MyAddress>();\n");
+                    domainSb.Append($"    if (!myaddr)\n    {{\n");
+                    domainSb.Append($"        myaddr = CreateObject<Ipv4MyAddress>();\n");
+                    domainSb.Append($"        myaddr->setAddr(csmaInterfaces->GetAddress(ifkount));\n");
+                    domainSb.Append($"        NS_LOG_INFO(\"N{node.Name} has IP address \" << myaddr->getAddr());\n");
+                    domainSb.Append($"        net.N{node.Name}->AggregateObject(myaddr);\n");
+                    domainSb.Append($"    }}\n    ifkount++;\n\n");
+                }
+                var nodeAddresses = domainSb.ToString();
+
+                domainSb.Clear();
+                foreach (var node in domain.Nodes)
+                {
+                    domainSb.Append($"    net.D{domain.Name}_{node.Name} = csmaDevices->Get(csma_intfcount);\n");
+                    domainSb.Append($"    csma_intfcount++;\n");
+                }
+                var devices = domainSb.ToString();
+
+                domainTemplate = domainTemplate.Replace("<%%nodes%%>", nodes);
+                domainTemplate = domainTemplate.Replace("<%%nodeAddresses%%>", nodeAddresses);
+                domainTemplate = domainTemplate.Replace("<%%devices%%>", devices);
+                domainTemplate = domainTemplate.Replace("<%%dataRate%%>", domain.DataRate);
+                domainTemplate = domainTemplate.Replace("<%%delay%%>", domain.Delay);
+                domainTemplate = domainTemplate.Replace("<%%baseAddress%%>", domain.BaseAddress);
+
+                sb.Append(domainTemplate);
+            }
+            var domains = sb.ToString();
+
+            template = template.Replace("<%%domains%%>", domains);
 
             return template;
         }
