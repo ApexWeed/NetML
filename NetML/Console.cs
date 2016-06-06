@@ -404,7 +404,7 @@ namespace NetML
                     foreach (var plot in Parameters.Plots)
                     {
                         BS.SendInput($"gnuplot {plot.EscapedName}.gpl");
-                        Thread.Sleep(100);
+                        Thread.Sleep(500);
                     }
                     
                     lock (OutputQueue)

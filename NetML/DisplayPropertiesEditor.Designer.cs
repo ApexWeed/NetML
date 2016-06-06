@@ -40,6 +40,10 @@
             this.chkRenderLink = new System.Windows.Forms.CheckBox();
             this.chkRenderStreamText = new System.Windows.Forms.CheckBox();
             this.chkRenderStream = new System.Windows.Forms.CheckBox();
+            this.label4 = new System.Windows.Forms.Label();
+            this.cmbDomainDisplayMode = new System.Windows.Forms.ComboBox();
+            this.chkRenderDomainText = new System.Windows.Forms.CheckBox();
+            this.chkRenderDomain = new System.Windows.Forms.CheckBox();
             this.SuspendLayout();
             // 
             // cmbNodeDisplayMode
@@ -102,7 +106,7 @@
             // chkRenderNode
             // 
             this.chkRenderNode.AutoSize = true;
-            this.chkRenderNode.Location = new System.Drawing.Point(14, 90);
+            this.chkRenderNode.Location = new System.Drawing.Point(12, 117);
             this.chkRenderNode.Name = "chkRenderNode";
             this.chkRenderNode.Size = new System.Drawing.Size(90, 16);
             this.chkRenderNode.TabIndex = 6;
@@ -113,7 +117,7 @@
             // chkRenderNodeText
             // 
             this.chkRenderNodeText.AutoSize = true;
-            this.chkRenderNodeText.Location = new System.Drawing.Point(223, 90);
+            this.chkRenderNodeText.Location = new System.Drawing.Point(221, 117);
             this.chkRenderNodeText.Name = "chkRenderNodeText";
             this.chkRenderNodeText.Size = new System.Drawing.Size(117, 16);
             this.chkRenderNodeText.TabIndex = 7;
@@ -124,7 +128,7 @@
             // chkRenderLinkText
             // 
             this.chkRenderLinkText.AutoSize = true;
-            this.chkRenderLinkText.Location = new System.Drawing.Point(223, 112);
+            this.chkRenderLinkText.Location = new System.Drawing.Point(221, 139);
             this.chkRenderLinkText.Name = "chkRenderLinkText";
             this.chkRenderLinkText.Size = new System.Drawing.Size(112, 16);
             this.chkRenderLinkText.TabIndex = 9;
@@ -135,7 +139,7 @@
             // chkRenderLink
             // 
             this.chkRenderLink.AutoSize = true;
-            this.chkRenderLink.Location = new System.Drawing.Point(14, 112);
+            this.chkRenderLink.Location = new System.Drawing.Point(12, 139);
             this.chkRenderLink.Name = "chkRenderLink";
             this.chkRenderLink.Size = new System.Drawing.Size(85, 16);
             this.chkRenderLink.TabIndex = 8;
@@ -146,7 +150,7 @@
             // chkRenderStreamText
             // 
             this.chkRenderStreamText.AutoSize = true;
-            this.chkRenderStreamText.Location = new System.Drawing.Point(223, 134);
+            this.chkRenderStreamText.Location = new System.Drawing.Point(221, 161);
             this.chkRenderStreamText.Name = "chkRenderStreamText";
             this.chkRenderStreamText.Size = new System.Drawing.Size(127, 16);
             this.chkRenderStreamText.TabIndex = 11;
@@ -157,7 +161,7 @@
             // chkRenderStream
             // 
             this.chkRenderStream.AutoSize = true;
-            this.chkRenderStream.Location = new System.Drawing.Point(14, 134);
+            this.chkRenderStream.Location = new System.Drawing.Point(12, 161);
             this.chkRenderStream.Name = "chkRenderStream";
             this.chkRenderStream.Size = new System.Drawing.Size(100, 16);
             this.chkRenderStream.TabIndex = 10;
@@ -165,11 +169,53 @@
             this.chkRenderStream.UseVisualStyleBackColor = true;
             this.chkRenderStream.CheckedChanged += new System.EventHandler(this.CheckBoxChanged);
             // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(12, 93);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(116, 12);
+            this.label4.TabIndex = 13;
+            this.label4.Text = "Domain Display Mode";
+            // 
+            // cmbDomainDisplayMode
+            // 
+            this.cmbDomainDisplayMode.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbDomainDisplayMode.FormattingEnabled = true;
+            this.cmbDomainDisplayMode.Location = new System.Drawing.Point(144, 90);
+            this.cmbDomainDisplayMode.Name = "cmbDomainDisplayMode";
+            this.cmbDomainDisplayMode.Size = new System.Drawing.Size(296, 20);
+            this.cmbDomainDisplayMode.TabIndex = 12;
+            // 
+            // chkRenderDomainText
+            // 
+            this.chkRenderDomainText.AutoSize = true;
+            this.chkRenderDomainText.Location = new System.Drawing.Point(221, 183);
+            this.chkRenderDomainText.Name = "chkRenderDomainText";
+            this.chkRenderDomainText.Size = new System.Drawing.Size(129, 16);
+            this.chkRenderDomainText.TabIndex = 15;
+            this.chkRenderDomainText.Text = "Render Domain Text";
+            this.chkRenderDomainText.UseVisualStyleBackColor = true;
+            // 
+            // chkRenderDomain
+            // 
+            this.chkRenderDomain.AutoSize = true;
+            this.chkRenderDomain.Location = new System.Drawing.Point(12, 183);
+            this.chkRenderDomain.Name = "chkRenderDomain";
+            this.chkRenderDomain.Size = new System.Drawing.Size(102, 16);
+            this.chkRenderDomain.TabIndex = 14;
+            this.chkRenderDomain.Text = "Render Domain";
+            this.chkRenderDomain.UseVisualStyleBackColor = true;
+            // 
             // DisplayPropertiesEditor
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(452, 163);
+            this.ClientSize = new System.Drawing.Size(452, 211);
+            this.Controls.Add(this.chkRenderDomainText);
+            this.Controls.Add(this.chkRenderDomain);
+            this.Controls.Add(this.label4);
+            this.Controls.Add(this.cmbDomainDisplayMode);
             this.Controls.Add(this.chkRenderStreamText);
             this.Controls.Add(this.chkRenderStream);
             this.Controls.Add(this.chkRenderLinkText);
@@ -206,5 +252,9 @@
         private System.Windows.Forms.CheckBox chkRenderLink;
         private System.Windows.Forms.CheckBox chkRenderStreamText;
         private System.Windows.Forms.CheckBox chkRenderStream;
+        private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.ComboBox cmbDomainDisplayMode;
+        private System.Windows.Forms.CheckBox chkRenderDomainText;
+        private System.Windows.Forms.CheckBox chkRenderDomain;
     }
 }
